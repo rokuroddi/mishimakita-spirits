@@ -32,8 +32,9 @@ label.fld{display:flex;flex-direction:column;gap:4px;margin:10px 0}
 @supports(height:100dvh){.game{height:100dvh}}
 .pinfo{display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--panel);border-radius:10px;font-size:12.5px}
 .pinfo .nm{font-weight:700;font-size:13px}
-.life{color:var(--D);letter-spacing:1px;font-size:14px}
-.life .lost{color:#444}
+.life{display:inline-flex;gap:3px;align-items:center}
+.life .lf{display:inline-block;width:11px;height:11px;border-radius:50%;background:var(--D);box-shadow:0 0 6px var(--D)}
+.life .lf.lost{background:#3a3d4a;box-shadow:none}
 .chip{background:var(--panel2);border-radius:6px;padding:2px 6px;white-space:nowrap}
 .zone{display:flex;gap:6px;overflow-x:auto;padding:4px 2px;min-height:96px;align-items:center}
 .zone.bases{min-height:58px}
@@ -771,7 +772,7 @@ function fx(g,t,x){
 function cutin(text,cls,ms){UI.cutin={text,cls};render();clearTimeout(UI._ct);UI._ct=setTimeout(()=>{UI.cutin=null;render();},ms);}
 
 function pinfo(g,p,top){
-  const life=Array.from({length:5},(_,i)=>i<p.life?'❤':'<span class="lost">❤</span>').join('');
+  const life=Array.from({length:5},(_,i)=>`<i class="lf${i<p.life?'':' lost'}"></i>`).join('');
   return `<div class="pinfo"><span class="nm">${esc(p.name)}</span><span class="life">${life}</span><span class="chip">◆${p.stock}</span><span class="chip" title="クールダウン">⏳${p.cool}</span>${top?`<span class="chip">手札${p.hand.length}</span>`:''}<span class="chip">山${p.deck.length}</span><span class="chip" data-act="grave" data-p="${p.i}">墓${p.grave.length}</span></div>`;
 }
 function gameHTML(){

@@ -1,0 +1,978 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>竜機妖バトル（仮）</title>
+<style>
+:root{
+  --bg:#12131a;--panel:#1c1e28;--panel2:#252836;--line:#343849;--text:#eef0f6;--sub:#9aa0b4;
+  --D:#e5484d;--M:#3e8ef7;--Y:#9b5de5;--gold:#f5c542;--good:#3fbf7f;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;font-size:14px;overscroll-behavior:none}
+button{font:inherit;color:inherit;border:1px solid var(--line);background:var(--panel2);border-radius:10px;padding:10px 14px;cursor:pointer}
+button.pri{background:var(--gold);color:#222;border-color:var(--gold);font-weight:700}
+button.dng{background:#3a1d22;border-color:#6b2a33}
+button:disabled{opacity:.4}
+select,input{font:inherit;color:var(--text);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px}
+#app{max-width:520px;margin:0 auto;min-height:100%;position:relative}
+.screen{padding:16px}
+h1{font-size:28px;margin:24px 0 4px;text-align:center;letter-spacing:.05em}
+h2{font-size:18px;margin:16px 0 8px}
+.sub{color:var(--sub)}
+.menu{display:flex;flex-direction:column;gap:12px;margin-top:28px}
+.menu button{padding:16px;font-size:17px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.factions{display:flex;justify-content:center;gap:18px;font-size:40px;margin-top:16px}
+label.fld{display:flex;flex-direction:column;gap:4px;margin:10px 0}
+
+/* ---------- game ---------- */
+.game{display:flex;flex-direction:column;height:100dvh;height:100vh;padding:6px 6px 0}
+@supports(height:100dvh){.game{height:100dvh}}
+.pinfo{display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--panel);border-radius:10px;font-size:12.5px}
+.pinfo .nm{font-weight:700;font-size:13px}
+.life{color:var(--D);letter-spacing:1px;font-size:14px}
+.life .lost{color:#444}
+.chip{background:var(--panel2);border-radius:6px;padding:2px 6px;white-space:nowrap}
+.zone{display:flex;gap:6px;overflow-x:auto;padding:4px 2px;min-height:96px;align-items:center}
+.zone.bases{min-height:58px}
+.game .zone:not(.bases){flex:1}
+.zone::-webkit-scrollbar{display:none}
+.mid{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:4px 6px;min-height:40px}
+.phase{font-weight:700;font-size:13px;white-space:nowrap}
+.log{font-size:11.5px;color:var(--sub);text-align:right;line-height:1.35;overflow:hidden;max-height:32px}
+.hand{display:flex;gap:6px;overflow-x:auto;padding:6px 2px;min-height:100px}
+.bar{display:flex;gap:8px;align-items:center;padding:8px 4px calc(8px + env(safe-area-inset-bottom));background:var(--panel);border-radius:12px 12px 0 0;margin:0 -6px}
+.bar .msg{flex:1;font-size:13px;padding-left:6px}
+.bar button{padding:10px 12px}
+.empty{color:#555;font-size:12px;padding:0 8px}
+
+.card{position:relative;flex:0 0 auto;width:62px;height:88px;border-radius:8px;background:var(--panel2);border:2px solid var(--line);overflow:hidden;transition:transform .2s,opacity .2s,box-shadow .2s;user-select:none}
+.card.f-D{border-color:var(--D)}.card.f-M{border-color:var(--M)}.card.f-Y{border-color:var(--Y)}
+.card .art{height:46px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.04)}
+.card.f-D .art{background:linear-gradient(160deg,#4a1a1d,#2a1416)}
+.card.f-M .art{background:linear-gradient(160deg,#16294a,#121a2a)}
+.card.f-Y .art{background:linear-gradient(160deg,#2f1a4a,#1b1329)}
+.card .art img{width:100%;height:100%;object-fit:cover}
+.card .emo{font-size:28px}
+.card .cn{font-size:9.5px;line-height:1.15;padding:2px 3px;height:24px;overflow:hidden;font-weight:600}
+.card .pw{position:absolute;bottom:2px;left:3px;font-size:11px;font-weight:800;color:var(--gold)}
+.card .lv{position:absolute;bottom:2px;right:3px;font-size:9.5px;color:var(--sub)}
+.card .cost{position:absolute;top:2px;left:2px;background:#000a;border-radius:50%;width:20px;height:20px;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.card .gm{position:absolute;top:2px;right:2px;background:#000b;border-radius:8px;padding:0 5px;font-size:11px;font-weight:700;color:#7fe0ff}
+.card .kd{position:absolute;top:2px;right:2px;background:#000a;border-radius:6px;padding:0 4px;font-size:9px}
+.card.base{height:54px;width:76px}
+.card.base .art{height:30px}.card.base .emo{font-size:20px}
+.card.base .cn{height:13px;white-space:nowrap}
+.card.tapped{transform:rotate(14deg) scale(.9);opacity:.55}
+.card.hl{box-shadow:0 0 0 3px var(--gold),0 0 14px var(--gold)}
+.card.dim{opacity:.4}
+.card.atk{box-shadow:0 0 0 3px #ff5a5a,0 0 18px #ff5a5a}
+.card.new{animation:pop .45s}
+@keyframes pop{0%{transform:scale(.3);opacity:0}70%{transform:scale(1.12)}100%{transform:scale(1)}}
+
+.sheetbg{position:fixed;inset:0;background:#000a;display:flex;align-items:flex-end;justify-content:center;z-index:20}
+.sheet{background:var(--panel);width:100%;max-width:520px;border-radius:16px 16px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));max-height:85vh;overflow:auto}
+.sheet .btns{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.detail{display:flex;gap:12px}
+.detail .big{flex:0 0 96px;height:120px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:48px;overflow:hidden;border:2px solid var(--line)}
+.detail .big img{width:100%;height:100%;object-fit:cover}
+.detail .big.f-D{border-color:var(--D);background:#2a1416}.detail .big.f-M{border-color:var(--M);background:#121a2a}.detail .big.f-Y{border-color:var(--Y);background:#1b1329}
+.detail h3{margin:0 0 4px;font-size:17px}
+.detail .meta{font-size:12px;color:var(--sub);margin-bottom:6px}
+.detail .txt{font-size:13.5px;line-height:1.5}
+.lvtable{font-size:12px;color:var(--sub);margin-top:6px}
+.picklist{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+
+.cutin{position:fixed;left:0;right:0;top:38%;z-index:30;pointer-events:none;text-align:center;font-size:28px;font-weight:900;padding:18px 0;background:linear-gradient(90deg,transparent,#000d 15%,#000d 85%,transparent);animation:cut 1.1s forwards;text-shadow:0 0 12px var(--gold)}
+.cutin.f-D{color:#ff8b8f}.cutin.f-M{color:#8cc1ff}.cutin.f-Y{color:#c9a2ff}
+.cutin.dmg{color:#fff;text-shadow:0 0 14px #f33}
+@keyframes cut{0%{transform:translateX(100%)}18%{transform:translateX(0)}80%{transform:translateX(0);opacity:1}100%{transform:translateX(-100%);opacity:0}}
+.shake{animation:shake .4s}
+@keyframes shake{0%,100%{transform:none}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.over{position:fixed;inset:0;background:#000c;z-index:40;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+.over .big{font-size:44px;font-weight:900}
+
+/* ---------- deck builder ---------- */
+.tabs{display:flex;gap:6px;margin:8px 0}
+.tabs button{flex:1;padding:8px}
+.tabs button.on{background:var(--gold);color:#222;border-color:var(--gold)}
+.clist{display:flex;flex-direction:column;gap:6px}
+.crow{display:flex;gap:8px;align-items:center;background:var(--panel);border-radius:10px;padding:6px}
+.crow .info{flex:1;min-width:0}
+.crow .t{font-weight:700;font-size:13px}
+.crow .s{font-size:11.5px;color:var(--sub);line-height:1.35}
+.crow .cnt{display:flex;align-items:center;gap:6px}
+.crow .cnt button{width:34px;height:34px;padding:0}
+.crow .cnt b{width:16px;text-align:center}
+.stick{position:sticky;top:0;background:var(--bg);padding:8px 0;z-index:5}
+.ok{color:var(--good)}.ng{color:var(--D)}
+table.stats{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:8px}
+table.stats th,table.stats td{padding:6px 4px;border-bottom:1px solid var(--line);text-align:left}
+table.stats td.n{text-align:right}
+.prog{height:10px;background:var(--panel2);border-radius:5px;overflow:hidden;margin:10px 0}
+.prog div{height:100%;background:var(--gold);width:0}
+.rules p,.rules li{line-height:1.6}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+'use strict';
+/* =========================================================
+   竜機妖バトル（仮） — 1ファイル版
+   ========================================================= */
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+const rnd=a=>a[Math.floor(Math.random()*a.length)];
+const maxBy=(a,f)=>a.reduce((b,x)=>f(x)>f(b)?x:b,a[0]);
+const minBy=(a,f)=>a.reduce((b,x)=>f(x)<f(b)?x:b,a[0]);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+const FAC={D:{name:'竜',icon:'🐉'},M:{name:'機',icon:'🤖'},Y:{name:'妖',icon:'👺'}};
+const KIND={unit:'ユニット',base:'拠点',spell:'魔法（メイン）',instant:'魔法（即時）'};
+
+/* ---------- カードの絵（あとで差し替え用） ----------
+   ART['D01']='data:image/webp;base64,....' のように入れると、その絵に置き換わる */
+const ART={};
+
+/* ---------- 制限・禁止 ---------- */
+const LIMITED={};   // 例: {D13:1}
+const BANNED={};    // 例: {M09:true}
+const maxCopies=id=>BANNED[id]?0:(LIMITED[id]||3);
+
+/* ---------- カードデータ ---------- */
+const CARDS={};
+function C(id,name,kind,cost,red,lv,text,emoji,star){CARDS[id]={id,name,kind,cost,red,lv,text,emoji,star:!!star,fac:id[0]};}
+// 竜
+C('D01','紅鱗の仔竜','unit',1,1,[[1,1000],[3,3000]],'なし','🐲');
+C('D02','火吹きトカゲ','unit',1,1,[[1,2000],[2,3000]],'このユニットはブロックできない','🦎');
+C('D03','赤翼のワイバーン','unit',2,1,[[1,2000],[3,4000]],'アタック時、パワー+1000','🦅');
+C('D04','竜騎士見習いカイ','unit',2,1,[[1,2000],[3,3000]],'召喚時、デッキの上3枚から竜1枚を手札へ。残りはデッキの下へ','🗡️');
+C('D05','炎の守り竜','unit',2,1,[[1,1000],[2,3000]],'破壊されたとき、1枚ドロー','🛡️');
+C('D06','岩殻竜ガンロック','unit',3,2,[[1,3000],[3,5000]],'ブロック時、パワー+2000','🪨');
+C('D07','双頭竜ツインファング','unit',3,2,[[1,3000],[3,5000]],'Lv2: アタック後、ジェム1個を払えば立ちに戻る（1ターン1回）','🐉');
+C('D08','小竜の群れ','unit',3,2,[[1,2000],[2,3000]],'自分の場の他の竜1体につき、パワー+1000','🐣');
+C('D09','爆炎竜ボルカ','unit',4,2,[[1,4000],[3,6000]],'召喚時、相手のパワー3000以下のユニット1体を破壊','💥');
+C('D10','紅蓮竜騎士レイガ','unit',5,3,[[1,5000],[4,8000]],'Lv2: ブロックされなかったとき、相手のライフをさらに1減らす','⚔️');
+C('D11','灼熱竜ヘルブレス','unit',5,3,[[1,5000],[3,7000]],'アタック時、相手のユニット全てのパワー-2000（ターン終了まで）','🌡️');
+C('D12','焔王ヴァルガン','unit',6,3,[[1,5000],[3,7000],[5,10000]],'アタック時、相手のパワー5000以下のユニット1体を破壊。Lv3: アタック後に立ちに戻る（1ターン1回）','👑',1);
+C('D13','天焦がす始祖竜','unit',8,4,[[1,7000],[3,10000],[5,13000]],'召喚時、このユニット以外の全てのユニットを破壊（自分のユニットも）','🌞',1);
+C('D14','竜の巣','base',2,1,[[0],[2]],'自分の竜のアタック時、パワー+1000。Lv2: +2000','🪺');
+C('D15','火山の祭壇','base',3,2,[[0],[3]],'自分のターン開始時、自分のライフが3以下ならジェム+1。Lv2: さらに1枚ドロー','🌋');
+C('D16','竜王の玉座','base',5,3,[[0],[3]],'自分のコスト6以上の竜のパワー+2000。Lv2: それらがブロックされても相手のライフを1減らす','🏰',1);
+C('D17','ファイアブレス','spell',2,1,[],'相手のパワー3000以下のユニット1体を破壊','🔥');
+C('D18','竜の咆哮','instant',1,1,[],'自分のユニット1体のパワー+3000（ターン終了まで）','📢');
+C('D19','炎の雨','spell',5,3,[],'相手のパワー4000以下のユニットを全て破壊','☄️');
+C('D20','逆鱗','instant',3,2,[],'自分のライフが2以下のときだけ使える。自分のユニット1体を立ちに戻し、パワー+3000','💢');
+// 機
+C('M01','偵察ドローン','unit',1,1,[[1,1000],[2,2000]],'召喚時、1枚ドロー','🛸');
+C('M02','作業ロボ・ナット','unit',1,1,[[1,1000],[3,3000]],'召喚時、自分のクールダウンのジェム1個をストックへ','🔧');
+C('M03','量産機ギアソルジャー','unit',2,1,[[1,2000],[2,3000]],'なし','🤖');
+C('M04','鉄甲兵ボルト','unit',2,1,[[1,2000],[3,4000]],'自分の場の他の機1体につき、パワー+1000','🦾');
+C('M05','修理ロボ・メディック','unit',2,1,[[1,1000],[3,3000]],'自分の他の機が破壊されたとき、1枚ドロー（1ターン1回）','🩹');
+C('M06','防衛ロボ・シールダー','unit',3,2,[[1,2000],[3,5000]],'ブロック時、パワー+3000','🛡️');
+C('M07','高速機ジェットライナー','unit',3,2,[[1,3000],[3,4000]],'アタック時、ブロックしたユニットのパワー-2000','✈️');
+C('M08','工兵ロボ・ビルダー','unit',3,2,[[1,2000],[3,4000]],'召喚時、デッキの上5枚から拠点1枚を手札へ。残りはデッキの下へ','🏗️');
+C('M09','無限増殖機ナノスウォーム','unit',3,2,[[1,1000],[2,2000]],'召喚時、自分の場の機が3体以上なら、デッキから同じカード1枚をジェム1個乗せて召喚','🦠',1);
+C('M10','砲撃機キャノンホーク','unit',4,2,[[1,3000],[3,5000]],'アタック時、相手のパワー（自分の場の機の数×1000）以下のユニット1体を破壊','🎯');
+C('M11','指揮官機コマンダー','unit',5,3,[[1,4000],[3,6000]],'自分の場の他の機全てのパワー+1000','📡');
+C('M12','機神アストラ','unit',6,3,[[1,5000],[3,8000],[5,11000]],'自分の場の他の機1体につき、パワー+1000。Lv3: 相手の効果で破壊されない','⚙️',1);
+C('M13','合体巨神ギガフォートレス','unit',7,4,[[1,6000],[3,9000],[5,12000]],'召喚時、自分の機2体を墓地に置いてよい。そうしたら乗っていたジェムを全部このユニットに乗せ、1枚ドロー','🗿');
+C('M14','防衛ライン','base',2,1,[[0],[2]],'自分の機がブロックしたとき、パワー+1000。Lv2: +2000','🧱');
+C('M15','整備基地ギアポート','base',3,2,[[0],[2]],'自分の機を召喚したとき、1枚ドロー（1ターン1回）。Lv2: 自分の機のパワー+1000','🛠️');
+C('M16','ジェム工場','base',4,2,[[0],[3]],'自分のターン開始時、ジェム+1。Lv2: +2','🏭',1);
+C('M17','設計図','spell',1,1,[],'2枚ドローし、その後手札を1枚捨てる','📐');
+C('M18','オーバーブースト','instant',2,1,[],'自分の機1体のパワー+（自分の場の機の数×1000）（ターン終了まで）','⚡');
+C('M19','緊急修理','instant',3,2,[],'自分の墓地のコスト3以下の機1体を、ジェム1個乗せて召喚','🔩');
+C('M20','EMPパルス','spell',4,2,[],'相手のユニットを全て伏せる','📴');
+// 妖
+C('Y01','鬼火','unit',1,1,[[1,1000],[2,2000]],'破壊されたとき、相手のユニット1体のパワー-2000（ターン終了まで）','👻');
+C('Y02','小鬼','unit',1,1,[[1,1000],[2,2000]],'破壊されたとき、相手は手札を1枚選んで捨てる','👹');
+C('Y03','唐傘おばけ','unit',1,1,[[1,1000],[3,3000]],'アタック時、相手のユニット1体のパワー-1000（ターン終了まで）','☂️');
+C('Y04','化け狐コン','unit',2,1,[[1,2000],[2,3000]],'召喚時、相手のユニット1体からジェム1個を相手のクールダウンへ','🦊');
+C('Y05','河童','unit',2,1,[[1,2000],[3,4000]],'ブロック時、アタックしているユニットのパワー-2000','🥒');
+C('Y06','ろくろ首','unit',2,1,[[1,2000],[3,3000]],'召喚時、相手の手札を全て見る','🦒');
+C('Y07','座敷わらし','unit',2,1,[[1,1000],[2,2000]],'自分のターン終了時、手札が2枚以下なら1枚ドロー','🎎');
+C('Y08','雪女','unit',3,2,[[1,3000],[3,4000]],'アタック時、相手のユニット1体を伏せる','❄️');
+C('Y09','化け猫','unit',3,2,[[1,2000],[3,4000]],'自分の墓地のユニット3枚につき、パワー+1000','🐈‍⬛');
+C('Y10','天狗','unit',4,2,[[1,4000],[3,6000]],'このユニットのアタック中、相手は即時魔法を使えない','👺');
+C('Y11','牛鬼','unit',4,2,[[1,3000],[4,7000]],'召喚時、相手のユニット1体からジェム2個を相手のクールダウンへ','🐂');
+C('Y12','がしゃどくろ','unit',6,3,[[1,5000],[3,8000],[5,11000]],'召喚時、自分の墓地のコスト4以下のユニット1体をジェム1個乗せて召喚。Lv3: アタック時、相手のユニット1体からジェム1個を剥がす','💀',1);
+C('Y13','九尾の妖狐','unit',7,4,[[1,6000],[3,9000],[5,12000]],'召喚時、相手のユニット全てからジェムを1個ずつ相手のクールダウンへ','🌕',1);
+C('Y14','妖の社','base',2,1,[[0],[2]],'自分の妖が破壊されたとき、相手のユニット1体からジェム1個を剥がす（1ターン1回、Lv2は2回）','⛩️');
+C('Y15','黄泉の門','base',3,2,[[0],[3]],'自分のターン終了時、ジェム1個を払えば墓地のコスト2以下の妖1体を召喚（払ったジェムを乗せる）。Lv2: コスト3以下','🚪');
+C('Y16','百鬼夜行の道','base',4,2,[[0],[3]],'自分の妖のパワー+1000。Lv2: さらに相手のユニットのパワー-1000','🏮');
+C('Y17','魂喰らい','spell',1,1,[],'自分のユニット1体を破壊。乗っていたジェムを全部自分のストックへ置き、1枚ドロー','🫀');
+C('Y18','呪いの札','spell',2,1,[],'相手のユニット1体からジェム2個を相手のクールダウンへ','📜');
+C('Y19','影縫い','instant',3,2,[],'アタック中の相手ユニット1体のアタックを終了させる','🕸️');
+C('Y20','神隠し','instant',4,2,[],'相手のユニット1体を手札に戻す。乗っていたジェムは相手のクールダウンへ','🌫️');
+const ALL_IDS=Object.keys(CARDS);
+
+const lvl=x=>{const L=CARDS[x.id].lv;let l=0;for(let i=0;i<L.length;i++)if(x.gems>=L[i][0])l=i+1;return l;};
+const isFac=f=>x=>CARDS[x.id].fac===f;
+let UID=1;
+const newObj=(id,owner,gems)=>({uid:UID++,id,owner,gems,tapped:false,temp:0,once:{},born:Date.now()});
+
+/* =========================================================
+   ルールエンジン
+   ========================================================= */
+class GameOver extends Error{}
+class Game{
+  constructor(decks,agents,opt={}){
+    this.fast=!!opt.fast;this.log=[];this.turn=0;this.over=false;this.winner=null;this.phase='';
+    this.onUpdate=opt.onUpdate||(()=>{});this.onFx=opt.onFx||(()=>{});
+    this.P=[0,1].map(i=>({i,name:(opt.names&&opt.names[i])||(i?'CPU':'あなた'),deck:shuffle(decks[i].slice()),hand:[],units:[],bases:[],grave:[],life:5,stock:4,cool:0,agent:agents[i],played:new Set()}));
+    this.active=0;this.atk=null;
+  }
+  opp(p){return this.P[1-p.i];}
+  L(m){this.log.push(m);if(this.log.length>120)this.log.shift();}
+  async upd(ms){this.onUpdate();if(!this.fast&&ms)await sleep(ms);}
+  ask(p,kind,data){return p.agent.choose(this,p,kind,data||{});}
+  lose(p,why){this.over=true;this.winner=this.opp(p).i;this.L(`${p.name}の負け（${why}）`);throw new GameOver();}
+  draw(p){if(!p.deck.length)this.lose(p,'デッキ切れ');p.hand.push(p.deck.pop());}
+
+  async run(){
+    try{
+      this.first=Math.random()<.5?0:1;this.active=this.first;
+      for(const p of this.P)for(let k=0;k<4;k++)this.draw(p);
+      this.onUpdate();
+      for(const p of this.P){
+        if(await this.ask(p,'mulligan',{})){p.deck.push(...p.hand);p.hand=[];shuffle(p.deck);for(let k=0;k<4;k++)this.draw(p);this.L(`${p.name}は手札を引き直した`);}
+      }
+      this.L(`${this.P[this.first].name}が先攻`);
+      while(true){
+        await this.takeTurn(this.P[this.active]);
+        this.active=1-this.active;
+        if(this.turn>=80){this.over=true;this.winner=null;this.L('引き分け（ターン上限）');break;}
+      }
+    }catch(e){if(!(e instanceof GameOver))throw e;}
+    this.onUpdate();return this.winner;
+  }
+
+  async takeTurn(p){
+    this.turn++;const first=this.turn===1;
+    for(const q of this.P)for(const x of [...q.units,...q.bases])x.once={};
+    this.phase='start';
+    p.stock+=1+p.cool;p.cool=0;for(const u of p.units)u.tapped=false;
+    this.L(`── ${p.name}のターン ${this.turn} ──`);
+    for(const b of p.bases.slice()){
+      if(b.id==='D15'&&p.life<=3){p.stock++;this.L('火山の祭壇: ジェム+1');if(lvl(b)>=2)this.draw(p);}
+      if(b.id==='M16'){const n=lvl(b)>=2?2:1;p.stock+=n;this.L(`ジェム工場: ジェム+${n}`);}
+    }
+    if(!first)this.draw(p);
+    this.onFx('turn',p);
+    await this.upd(500);
+    this.phase='main';await this.mainPhase(p);
+    if(!first){this.phase='attack';await this.attackPhase(p);}
+    this.phase='end';await this.endPhase(p);
+  }
+
+  cost(p,id){const c=CARDS[id];const n=[...p.units,...p.bases].filter(x=>CARDS[x.id].fac===c.fac).length;return Math.max(0,c.cost-Math.min(c.red,n));}
+
+  canPlay(p,idx,ctx){
+    const id=p.hand[idx];if(!id)return false;const c=CARDS[id],o=this.opp(p);
+    let need=this.cost(p,id)+(c.kind==='unit'?1:0);
+    if(id==='M19')need+=1;
+    if(p.stock<need)return false;
+    if(ctx&&c.kind!=='instant')return false;
+    switch(id){
+      case 'D17':return o.units.some(u=>this.power(u)<=3000);
+      case 'Y18':case 'Y20':return o.units.length>0;
+      case 'D18':case 'Y17':return p.units.length>0;
+      case 'M18':return p.units.some(isFac('M'));
+      case 'D20':return p.life<=2&&p.units.length>0;
+      case 'Y19':return !!(ctx&&ctx.defP===p&&!ctx.ended);
+      case 'M19':return p.grave.some(i=>CARDS[i].fac==='M'&&CARDS[i].kind==='unit'&&CARDS[i].cost<=3);
+    }
+    return true;
+  }
+
+  power(u){
+    const c=CARDS[u.id],p=this.P[u.owner],o=this.opp(p),l=lvl(u);if(!l)return 0;
+    let pw=c.lv[l-1][1]+u.temp;
+    const others=f=>p.units.filter(x=>x!==u&&CARDS[x.id].fac===f).length;
+    if(u.id==='D08')pw+=1000*others('D');
+    if(u.id==='M04'||u.id==='M12')pw+=1000*others('M');
+    if(c.fac==='M')pw+=1000*p.units.filter(x=>x!==u&&x.id==='M11').length;
+    if(u.id==='Y09')pw+=1000*Math.floor(p.grave.filter(i=>CARDS[i].kind==='unit').length/3);
+    for(const b of p.bases){const bl=lvl(b);
+      if(b.id==='D14'&&c.fac==='D'&&u.attacking)pw+=bl>=2?2000:1000;
+      if(b.id==='M14'&&c.fac==='M'&&u.blocking)pw+=bl>=2?2000:1000;
+      if(b.id==='M15'&&c.fac==='M'&&bl>=2)pw+=1000;
+      if(b.id==='D16'&&c.fac==='D'&&c.cost>=6)pw+=2000;
+      if(b.id==='Y16'&&c.fac==='Y')pw+=1000;
+    }
+    for(const b of o.bases)if(b.id==='Y16'&&lvl(b)>=2)pw-=1000;
+    return Math.max(0,pw);
+  }
+
+  async play(p,idx,gemsOn,ctx){
+    const id=p.hand[idx],c=CARDS[id],cost=this.cost(p,id);
+    p.hand.splice(idx,1);p.stock-=cost;p.cool+=cost;p.played.add(id);
+    if(c.kind==='unit'||c.kind==='base'){
+      const g=Math.max(c.kind==='unit'?1:0,Math.min(gemsOn||0,p.stock));
+      const x=newObj(id,p.i,g);p.stock-=g;
+      (c.kind==='unit'?p.units:p.bases).push(x);
+      this.L(`${p.name}: ${c.name}を${c.kind==='unit'?'召喚':'配置'}`);
+      this.onFx('summon',x);
+      await this.upd(c.cost>=6?1200:550);
+      if(c.kind==='unit')await this.onSummon(p,x);
+    }else{
+      this.L(`${p.name}: ${c.name}`);
+      this.onFx('spell',{id,owner:p.i});
+      await this.upd(700);
+      await this.spell(p,id,ctx);
+      p.grave.push(id);
+    }
+    await this.cleanup();await this.upd(200);
+  }
+
+  async cleanup(){
+    for(const q of this.P)for(const u of q.units.slice())if(u.gems<1)await this.destroy(u,null);
+  }
+
+  async destroy(u,by,opt={}){
+    const p=this.P[u.owner];
+    const arr=p.units.includes(u)?p.units:p.bases.includes(u)?p.bases:null;if(!arr)return false;
+    if(by&&by.i!==p.i&&u.id==='M12'&&lvl(u)>=3){this.L('機神アストラは効果で破壊されない！');return false;}
+    arr.splice(arr.indexOf(u),1);p.cool+=u.gems;u.gems=0;u.dead=true;p.grave.push(u.id);
+    const c=CARDS[u.id];
+    this.L(opt.silent?`${c.name}を墓地へ`:`${c.name}が破壊された`);this.onFx('destroy',u);await this.upd(350);
+    if(c.kind!=='unit'||opt.silent)return true;
+    const o=this.opp(p);
+    if(u.id==='D05')this.draw(p);
+    if(u.id==='Y01'){const t=await this.pick(p,o.units,'鬼火: パワー-2000する相手ユニット');if(t)t.temp-=2000;}
+    if(u.id==='Y02'&&o.hand.length){const k=await this.ask(o,'pickCard',{ids:o.hand.slice(),prompt:'小鬼: 捨てる手札を選ぶ',mode:'discard'});const d=o.hand.splice(k||0,1)[0];o.grave.push(d);this.L(`${o.name}は${CARDS[d].name}を捨てた`);}
+    if(c.fac==='M')for(const m of p.units)if(m.id==='M05'&&!m.once.m05){m.once.m05=1;this.L('修理ロボ: 1枚ドロー');this.draw(p);}
+    if(c.fac==='Y')for(const b of p.bases)if(b.id==='Y14'){
+      const lim=lvl(b)>=2?2:1;b.once.y14=b.once.y14||0;
+      if(b.once.y14<lim&&o.units.length){b.once.y14++;const t=await this.pick(p,o.units,'妖の社: ジェムを剥がす相手ユニット');if(t)await this.strip(t,1);}
+    }
+    return true;
+  }
+
+  async strip(u,n){
+    const p=this.P[u.owner];const k=Math.min(n,u.gems);u.gems-=k;p.cool+=k;
+    this.L(`${CARDS[u.id].name}のジェムを${k}個剥がした`);this.onFx('strip',u);await this.upd(350);
+    if(u.gems<1)await this.destroy(u,null);
+  }
+
+  async damage(o,n){
+    for(let k=0;k<n;k++){
+      if(o.life<=0)break;
+      o.life--;o.stock++;
+      this.L(`${o.name}のライフ-1（残り${o.life}）`);this.onFx('damage',o);
+      await this.upd(700);
+      if(o.life<=0)this.lose(o,'ライフ0');
+    }
+  }
+
+  pick(p,options,prompt,mode){if(!options.length)return Promise.resolve(null);return this.ask(p,'target',{options,prompt,mode});}
+
+  async searchTop(p,n,filter,prompt){
+    const top=p.deck.splice(Math.max(0,p.deck.length-n));
+    const cands=top.filter(filter);
+    if(cands.length){
+      const k=await this.ask(p,'pickCard',{ids:cands,prompt,mode:'take',optional:true});
+      if(k!=null&&k>=0){const id=cands[k];top.splice(top.indexOf(id),1);p.hand.push(id);this.L(`${CARDS[id].name}を手札に加えた`);}
+    }else this.L('対象がなかった');
+    p.deck.unshift(...top);
+  }
+
+  async revive(p,filter,prompt){
+    if(p.stock<1)return;
+    const cands=[...new Set(p.grave.filter(filter))];if(!cands.length)return;
+    const k=await this.ask(p,'pickCard',{ids:cands,prompt,mode:'take'});
+    if(k==null||k<0)return;
+    const id=cands[k];p.grave.splice(p.grave.indexOf(id),1);p.stock--;
+    const y=newObj(id,p.i,1);p.units.push(y);p.played.add(id);
+    this.L(`${CARDS[id].name}が墓地から召喚された`);this.onFx('summon',y);await this.upd(600);
+    await this.onSummon(p,y);
+  }
+
+  async onSummon(p,x){
+    const o=this.opp(p),id=x.id;
+    switch(id){
+      case 'D04':await this.searchTop(p,3,i=>CARDS[i].fac==='D','カイ: 手札に加える竜を選ぶ');break;
+      case 'M08':await this.searchTop(p,5,i=>CARDS[i].kind==='base','ビルダー: 手札に加える拠点を選ぶ');break;
+      case 'D09':{const t=await this.pick(p,o.units.filter(u=>this.power(u)<=3000),'ボルカ: 破壊する相手ユニット');if(t)await this.destroy(t,p);break;}
+      case 'D13':for(const u of [...p.units,...o.units])if(u!==x)await this.destroy(u,p);break;
+      case 'M01':this.draw(p);break;
+      case 'M02':if(p.cool>0){p.cool--;p.stock++;this.L('ナット: ジェム1個をストックへ');}break;
+      case 'M09':{
+        if(p.units.filter(isFac('M')).length>=3&&p.stock>=1){const k=p.deck.indexOf('M09');
+          if(k>=0){p.deck.splice(k,1);p.stock--;const y=newObj('M09',p.i,1);p.units.push(y);this.L('ナノスウォームが増殖！');this.onFx('summon',y);await this.upd(500);await this.onSummon(p,y);}}
+        break;}
+      case 'M13':{
+        const others=()=>p.units.filter(u=>u!==x&&CARDS[u.id].fac==='M');
+        if(others().length>=2&&await this.ask(p,'yesno',{prompt:'ギガフォートレス: 自分の機2体を墓地に置いて合体する？'})){
+          for(let k=0;k<2;k++){const t=await this.pick(p,others(),`合体する機を選ぶ（${k+1}/2）`,'bad');if(!t)break;x.gems+=t.gems;t.gems=0;await this.destroy(t,null,{silent:true});}
+          this.L('ギガフォートレス合体！');this.draw(p);
+        }break;}
+      case 'Y04':{const t=await this.pick(p,o.units,'コン: ジェムを剥がす相手ユニット');if(t)await this.strip(t,1);break;}
+      case 'Y11':{const t=await this.pick(p,o.units,'牛鬼: ジェムを2個剥がす相手ユニット');if(t)await this.strip(t,2);break;}
+      case 'Y13':for(const u of o.units.slice())await this.strip(u,1);break;
+      case 'Y06':this.L(`ろくろ首: ${o.name}の手札を見た`);await this.ask(p,'reveal',{ids:o.hand.slice()});break;
+      case 'Y12':await this.revive(p,i=>CARDS[i].kind==='unit'&&CARDS[i].cost<=4,'がしゃどくろ: 墓地から召喚するユニット');break;
+    }
+    if(CARDS[id].fac==='M')for(const b of p.bases)if(b.id==='M15'&&!b.once.m15){b.once.m15=1;this.L('ギアポート: 1枚ドロー');this.draw(p);}
+  }
+
+  async onAttack(p,u){
+    const o=this.opp(p);
+    switch(u.id){
+      case 'D03':u.temp+=1000;break;
+      case 'D11':for(const t of o.units)t.temp-=2000;this.L('ヘルブレス: 相手全体パワー-2000');break;
+      case 'D12':{const t=await this.pick(p,o.units.filter(t=>this.power(t)<=5000),'ヴァルガン: 破壊する相手ユニット');if(t)await this.destroy(t,p);break;}
+      case 'M10':{const lim=1000*p.units.filter(isFac('M')).length;const t=await this.pick(p,o.units.filter(t=>this.power(t)<=lim),`キャノンホーク: 破壊する相手ユニット（パワー${lim}以下）`);if(t)await this.destroy(t,p);break;}
+      case 'Y03':{const t=await this.pick(p,o.units,'唐傘おばけ: パワー-1000する相手ユニット');if(t)t.temp-=1000;break;}
+      case 'Y08':{const t=await this.pick(p,o.units.filter(t=>!t.tapped),'雪女: 伏せる相手ユニット');if(t){t.tapped=true;this.L(`${CARDS[t.id].name}を伏せた`);}break;}
+      case 'Y12':if(lvl(u)>=3){const t=await this.pick(p,o.units,'がしゃどくろ: ジェムを剥がす相手ユニット');if(t)await this.strip(t,1);}break;
+    }
+  }
+
+  async mainPhase(p){
+    for(let guard=0;guard<200;guard++){
+      if(this.over)return;
+      const a=await this.ask(p,'main',{});
+      if(!a||a.type==='end')return;
+      if(a.type==='play'){if(this.canPlay(p,a.idx,null))await this.play(p,a.idx,a.gems,null);}
+      else if(a.type==='gem+'){if(p.stock>0&&!a.x.dead){a.x.gems++;p.stock--;}}
+      else if(a.type==='gem-'){if(a.x.gems>0&&!a.x.dead){a.x.gems--;p.stock++;await this.cleanup();}}
+      this.onUpdate();
+    }
+  }
+
+  async attackPhase(p){
+    for(let guard=0;guard<40;guard++){
+      const cands=p.units.filter(u=>!u.tapped);if(!cands.length)return;
+      const u=await this.ask(p,'attack',{options:cands});if(!u)return;
+      await this.doAttack(p,u);
+    }
+  }
+
+  async doAttack(p,u){
+    const o=this.opp(p);
+    u.tapped=true;u.attacking=true;
+    const ctx={attacker:u,atkP:p,defP:o,blocked:false,blocker:null,ended:false};this.atk=ctx;
+    this.L(`${CARDS[u.id].name}のアタック！`);this.onFx('attack',u);await this.upd(600);
+    try{
+      await this.onAttack(p,u);await this.cleanup();
+      if(u.dead)return;
+      await this.instantWindow(ctx);
+      if(u.dead||ctx.ended)return;
+      const bl=o.units.filter(x=>!x.tapped&&x.id!=='D02');
+      const b=bl.length?await this.ask(o,'block',{options:bl,attacker:u}):null;
+      if(b){
+        ctx.blocked=true;ctx.blocker=b;b.tapped=true;b.blocking=true;
+        this.L(`${CARDS[b.id].name}がブロック！`);this.onFx('block',b);await this.upd(600);
+        if(b.id==='D06')b.temp+=2000;
+        if(b.id==='M06')b.temp+=3000;
+        if(b.id==='Y05')u.temp-=2000;
+        if(u.id==='M07')b.temp-=2000;
+        await this.instantWindow(ctx);
+        if(u.dead||ctx.ended)return;
+        if(CARDS[u.id].fac==='D'&&CARDS[u.id].cost>=6&&p.bases.some(x=>x.id==='D16'&&lvl(x)>=2)){this.L('竜王の玉座: ブロックを貫く！');await this.damage(o,1);}
+        if(!b.dead){
+          const pa=this.power(u),pb=this.power(b);
+          this.L(`バトル ${pa} vs ${pb}`);await this.upd(500);
+          if(pa>=pb)await this.destroy(b,null);
+          if(pb>=pa)await this.destroy(u,null);
+        }
+      }else{
+        await this.damage(o,(u.id==='D10'&&lvl(u)>=2)?2:1);
+      }
+      if(!u.dead&&u.tapped){
+        if(u.id==='D07'&&lvl(u)>=2&&!u.once.re&&p.stock>=1&&await this.ask(p,'yesno',{prompt:'ツインファング: ジェム1個を払って立ちに戻す？'})){u.once.re=1;p.stock--;p.cool++;u.tapped=false;this.L('ツインファングが立ち上がった');}
+        if(u.id==='D12'&&lvl(u)>=3&&!u.once.re){u.once.re=1;u.tapped=false;this.L('ヴァルガンが再び立ち上がる！');}
+      }
+    }finally{u.attacking=false;for(const x of o.units)x.blocking=false;this.atk=null;}
+    await this.upd(300);
+  }
+
+  async instantWindow(ctx){
+    let passes=0,who=ctx.defP;
+    for(let guard=0;passes<2&&guard<8;guard++){
+      if(ctx.ended||ctx.attacker.dead)return;
+      if(!(who===ctx.defP&&ctx.attacker.id==='Y10')){
+        const opts=who.hand.map((id,i)=>i).filter(i=>CARDS[who.hand[i]].kind==='instant'&&this.canPlay(who,i,ctx));
+        const k=opts.length?await this.ask(who,'instant',{options:opts,ctx}):null;
+        if(k!=null){passes=0;await this.play(who,k,0,ctx);}else passes++;
+      }else passes++;
+      who=this.opp(who);
+    }
+  }
+
+  async spell(p,id,ctx){
+    const o=this.opp(p);
+    switch(id){
+      case 'D17':{const t=await this.pick(p,o.units.filter(u=>this.power(u)<=3000),'破壊する相手ユニット');if(t)await this.destroy(t,p);break;}
+      case 'D18':{const t=await this.pick(p,p.units,'パワー+3000する自分のユニット','buff');if(t)t.temp+=3000;break;}
+      case 'D19':for(const u of o.units.filter(u=>this.power(u)<=4000))await this.destroy(u,p);break;
+      case 'D20':{const t=await this.pick(p,p.units,'立ちに戻してパワー+3000する自分のユニット','buff');if(t){t.tapped=false;t.temp+=3000;}break;}
+      case 'M17':{this.draw(p);this.draw(p);const k=await this.ask(p,'pickCard',{ids:p.hand.slice(),prompt:'捨てる手札を選ぶ',mode:'discard'});p.grave.push(p.hand.splice(k||0,1)[0]);break;}
+      case 'M18':{const t=await this.pick(p,p.units.filter(isFac('M')),'パワーを上げる自分の機','buff');if(t)t.temp+=1000*p.units.filter(isFac('M')).length;break;}
+      case 'M19':await this.revive(p,i=>CARDS[i].fac==='M'&&CARDS[i].kind==='unit'&&CARDS[i].cost<=3,'緊急修理: 召喚する機');break;
+      case 'M20':for(const u of o.units)u.tapped=true;this.L('相手のユニットを全て伏せた');break;
+      case 'Y17':{const t=await this.pick(p,p.units,'破壊する自分のユニット','bad');if(t){const g=t.gems;t.gems=0;await this.destroy(t,null);p.stock+=g;this.draw(p);}break;}
+      case 'Y18':{const t=await this.pick(p,o.units,'ジェムを2個剥がす相手ユニット');if(t)await this.strip(t,2);break;}
+      case 'Y19':if(ctx){ctx.ended=true;this.L('影縫い！アタックが止まった');}break;
+      case 'Y20':{const t=await this.pick(p,o.units,'手札に戻す相手ユニット');if(t){o.units.splice(o.units.indexOf(t),1);o.cool+=t.gems;t.gems=0;t.dead=true;o.hand.push(t.id);this.L(`${CARDS[t.id].name}は手札に戻った`);if(ctx&&t===ctx.attacker)ctx.ended=true;}break;}
+    }
+  }
+
+  async endPhase(p){
+    for(const u of p.units.slice())if(u.id==='Y07'&&p.hand.length<=2){this.L('座敷わらし: 1枚ドロー');this.draw(p);}
+    for(const b of p.bases.slice())if(b.id==='Y15'&&p.stock>=1){
+      const lim=lvl(b)>=2?3:2;const f=i=>CARDS[i].fac==='Y'&&CARDS[i].kind==='unit'&&CARDS[i].cost<=lim;
+      if(p.grave.some(f)&&await this.ask(p,'yesno',{prompt:'黄泉の門: ジェム1個で墓地の妖を召喚する？'}))await this.revive(p,f,'黄泉の門: 召喚する妖');
+    }
+    for(const q of this.P)for(const u of q.units)u.temp=0;
+    await this.upd(250);
+  }
+}
+
+/* =========================================================
+   CPU
+   ========================================================= */
+function cpuAgent(level){
+  return{cpu:true,level,async choose(g,p,kind,d){
+    if(!g.fast&&['main','attack','block','instant','target'].includes(kind))await sleep(kind==='main'?450:350);
+    return cpuChoose(g,p,kind,d,level);
+  }};
+}
+function cpuChoose(g,p,kind,d,lv){
+  const easy=lv==='easy',pw=u=>g.power(u);
+  switch(kind){
+    case 'mulligan':return !p.hand.some(id=>CARDS[id].cost<=3);
+    case 'reveal':return null;
+    case 'yesno':return easy?Math.random()<.5:true;
+    case 'pickCard':{
+      if(easy)return Math.floor(Math.random()*d.ids.length);
+      const sc=id=>CARDS[id].cost;const best=d.mode==='discard'?minBy(d.ids,sc):maxBy(d.ids,sc);return d.ids.indexOf(best);}
+    case 'target':{
+      const o=d.options;if(!o.length)return null;if(easy)return rnd(o);
+      if(d.mode==='bad')return minBy(o,u=>pw(u)+CARDS[u.id].cost*500);
+      if(d.mode==='buff')return maxBy(o,u=>(u.attacking||u.blocking?100000:0)+pw(u));
+      return maxBy(o,u=>pw(u)+u.gems*300+CARDS[u.id].cost*200);}
+    case 'main':return cpuMain(g,p,lv);
+    case 'attack':return cpuAttack(g,p,d.options,lv);
+    case 'block':return cpuBlock(g,p,d,lv);
+    case 'instant':return cpuInstant(g,p,d,lv);
+  }
+  return null;
+}
+function cpuMain(g,p,lv){
+  const o=g.opp(p),pw=u=>g.power(u);
+  const hand=p.hand.map((id,i)=>({id,i,c:CARDS[id]})).filter(h=>g.canPlay(p,h.i,null));
+  if(lv==='easy'){
+    if(hand.length&&Math.random()<.85){const h=rnd(hand);const free=p.stock-g.cost(p,h.id);return{type:'play',idx:h.i,gems:h.c.kind==='unit'?1+Math.floor(Math.random()*Math.max(1,free)):0};}
+    return{type:'end'};
+  }
+  const instants=p.hand.filter(id=>CARDS[id].kind==='instant');
+  const reserve=instants.length?Math.min(...instants.map(id=>g.cost(p,id))):0;
+  let best=null,bestV=0;
+  for(const h of hand){
+    const id=h.id,c=h.c,cost=g.cost(p,id);let v=0;
+    if(c.kind==='unit'){v=c.lv[0][1]/1000+c.cost*1.2+1;if(id==='D13'){const mine=p.units.reduce((s,u)=>s+CARDS[u.id].cost,0),theirs=o.units.reduce((s,u)=>s+CARDS[u.id].cost,0);v=theirs>mine+2?20:0;}}
+    else if(c.kind==='base')v=c.cost*.8+1;
+    else switch(id){
+      case 'D17':v=4;break;
+      case 'D19':{const n=o.units.filter(u=>pw(u)<=4000).length;v=n>=2?n*3:0;break;}
+      case 'M17':v=p.hand.length<=3?2.5:0.5;break;
+      case 'M20':v=(o.units.some(u=>!u.tapped)&&p.units.some(u=>!u.tapped)&&g.turn>1)?3.5:0;break;
+      case 'Y18':v=o.units.some(u=>u.gems<=2)?4.5:1;break;
+      case 'M19':v=2.5;break;
+      default:v=0;
+    }
+    const left=p.stock-cost-(c.kind==='unit'?1:0);
+    if(left<reserve&&c.cost<5&&c.kind!=='instant')v*=.3;
+    if(v>bestV){bestV=v;best=h;}
+  }
+  if(best&&bestV>=1)return{type:'play',idx:best.i,gems:best.c.kind==='unit'?1:0};
+  // 余ったジェムでレベルアップ
+  let budget=p.stock-reserve;
+  let pick=null,need=99;
+  for(const x of [...p.units,...p.bases]){
+    const L=CARDS[x.id].lv,l=lvl(x);if(l>=L.length)continue;
+    const n=L[l][0]-x.gems;if(n<=budget&&n<need){need=n;pick=x;}
+  }
+  if(pick)return{type:'gem+',x:pick};
+  return{type:'end'};
+}
+function cpuAttack(g,p,opts,lv){
+  if(lv==='easy')return Math.random()<.7?rnd(opts):null;
+  const o=g.opp(p),pw=u=>g.power(u);
+  const blockers=o.units.filter(u=>!u.tapped&&u.id!=='D02');
+  if(opts.length-blockers.length>=o.life)return maxBy(opts,pw);
+  const maxB=blockers.length?Math.max(...blockers.map(pw)):-1;
+  const keep=Math.max(0,o.units.length+1-(p.life-1));
+  if(opts.length<=keep)return null;
+  const safe=opts.filter(u=>pw(u)>maxB||['D09','D12','M10','Y08'].includes(u.id));
+  if(safe.length)return maxBy(safe,pw);
+  if(!blockers.length)return opts[0];
+  return null;
+}
+function cpuBlock(g,p,d,lv){
+  const opts=d.options;if(lv==='easy')return Math.random()<.5?rnd(opts):null;
+  const a=d.attacker,pa=g.power(a),pw=u=>g.power(u);
+  const win=opts.filter(u=>pw(u)>pa);if(win.length)return minBy(win,pw);
+  const dmg=(a.id==='D10'&&lvl(a)>=2)?2:1;
+  if(p.life<=dmg)return minBy(opts,pw);
+  const tie=opts.filter(u=>pw(u)===pa&&CARDS[u.id].cost<=CARDS[a.id].cost);if(tie.length)return tie[0];
+  if(p.life<=2)return minBy(opts,u=>CARDS[u.id].cost);
+  return null;
+}
+function cpuInstant(g,p,d,lv){
+  if(lv==='easy')return Math.random()<.3?d.options[0]:null;
+  const ctx=d.ctx,a=ctx.attacker,isDef=ctx.defP===p,pw=u=>g.power(u);
+  const blockers=p.units.filter(u=>!u.tapped);
+  for(const i of d.options){
+    const id=p.hand[i];
+    if(id==='Y19'&&isDef&&!ctx.blocked&&(p.life<=2||pw(a)>=6000))return i;
+    if(id==='Y20'&&isDef&&!ctx.blocked&&(p.life<=2||CARDS[a.id].cost>=5))return i;
+    if(id==='D20'&&isDef&&!ctx.blocked&&!blockers.length)return i;
+    if(id==='M19'&&isDef&&!ctx.blocked&&p.life<=2&&!blockers.length)return i;
+    if((id==='D18'||id==='M18')&&ctx.blocked&&ctx.blocker&&!ctx.blocker.dead){
+      const mine=isDef?ctx.blocker:a,their=isDef?a:ctx.blocker;
+      if(id==='M18'&&CARDS[mine.id].fac!=='M')continue;
+      const bonus=id==='D18'?3000:1000*p.units.filter(isFac('M')).length;
+      const diff=pw(their)-pw(mine);if(diff>=0&&diff<bonus)return i;
+    }
+  }
+  return null;
+}
+
+/* =========================================================
+   デッキ
+   ========================================================= */
+const PRESETS=['D','M','Y'].map(f=>({name:`${FAC[f].name}単（入門）`,preset:true,cards:Object.fromEntries(ALL_IDS.filter(i=>i[0]===f).map(i=>[i,2]))}));
+const store={
+  get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+};
+const myDecks=()=>store.get('rk.decks',[]);
+const allDecks=()=>[...PRESETS,...myDecks()];
+const deckCount=d=>Object.values(d.cards).reduce((s,n)=>s+n,0);
+const deckList=d=>Object.entries(d.cards).flatMap(([id,n])=>Array(n).fill(id));
+function deckProblems(d){
+  const pr=[];const n=deckCount(d);if(n<40)pr.push(`あと${40-n}枚必要`);
+  for(const [id,k] of Object.entries(d.cards))if(k>maxCopies(id))pr.push(`${CARDS[id].name}は${maxCopies(id)}枚まで`);
+  return pr;
+}
+
+/* =========================================================
+   サウンド
+   ========================================================= */
+let AC=null,muted=store.get('rk.mute',false);
+function sfx(type){
+  if(muted)return;try{
+    AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+    const t=AC.currentTime,o=AC.createOscillator(),g=AC.createGain();o.connect(g);g.connect(AC.destination);
+    const P={summon:[520,880,.18,'triangle'],big:[220,660,.5,'sawtooth'],attack:[300,180,.15,'square'],damage:[160,60,.35,'sawtooth'],destroy:[400,90,.2,'square'],spell:[700,1100,.2,'sine'],turn:[440,560,.12,'sine'],win:[523,1046,.6,'triangle']}[type];
+    if(!P)return;o.type=P[3];o.frequency.setValueAtTime(P[0],t);o.frequency.exponentialRampToValueAtTime(P[1],t+P[2]);
+    g.gain.setValueAtTime(.12,t);g.gain.exponentialRampToValueAtTime(.001,t+P[2]+.05);o.start(t);o.stop(t+P[2]+.06);
+  }catch(e){}
+}
+
+/* =========================================================
+   画面
+   ========================================================= */
+const app=document.getElementById('app');
+const UI={screen:'title',game:null,prompt:null,sheet:null,cutin:null,setup:{my:0,cpu:1,level:'normal'},editing:null,filter:'all',sim:{a:0,b:1,n:100,running:false,res:null,prog:0}};
+
+function artHTML(id){return ART[id]?`<img src="${ART[id]}" alt="">`:`<span class="emo">${CARDS[id].emoji}</span>`;}
+function cardText(id){
+  const c=CARDS[id];
+  const lvs=c.kind==='unit'?c.lv.map((l,i)=>`Lv${i+1}: ジェム${l[0]}個 → パワー${l[1]}`).join('<br>'):c.kind==='base'?c.lv.map((l,i)=>`Lv${i+1}: ジェム${l[0]}個`).join('<br>'):'';
+  return `<div class="detail"><div class="big f-${c.fac}">${ART[id]?`<img src="${ART[id]}">`:c.emoji}</div><div><h3>${esc(c.name)}${c.star?' ★':''}</h3><div class="meta">${id} ・ ${FAC[c.fac].name} ・ ${KIND[c.kind]} ・ コスト${c.cost}（軽減${c.red}）</div><div class="txt">${esc(c.text)}</div><div class="lvtable">${lvs}</div></div></div>`;
+}
+function fieldCard(g,x,cls=''){
+  const c=CARDS[x.id],base=c.kind==='base';
+  const isNew=Date.now()-x.born<600?' new':'';
+  return `<div class="card f-${c.fac}${base?' base':''}${x.tapped?' tapped':''}${isNew} ${cls}" data-uid="${x.uid}"><div class="art">${artHTML(x.id)}</div><div class="cn">${esc(c.name)}</div>${base?'':`<div class="pw">${g.power(x)}</div>`}<div class="lv">Lv${lvl(x)}</div><div class="gm">◆${x.gems}</div></div>`;
+}
+function handCard(g,p,id,i,cls=''){
+  const c=CARDS[id];
+  return `<div class="card f-${c.fac} ${cls}" data-hand="${i}"><div class="art">${artHTML(id)}</div><div class="cn">${esc(c.name)}</div><div class="cost">${g.cost(p,id)}</div><div class="kd">${{unit:'U',base:'拠',spell:'魔',instant:'即'}[c.kind]}</div>${c.kind==='unit'?`<div class="pw">${c.lv[0][1]}</div>`:''}</div>`;
+}
+
+function render(){
+  const s=UI.screen;
+  if(s==='title')app.innerHTML=titleHTML();
+  else if(s==='setup')app.innerHTML=setupHTML();
+  else if(s==='game')app.innerHTML=gameHTML();
+  else if(s==='deck')app.innerHTML=deckHTML();
+  else if(s==='sim')app.innerHTML=simHTML();
+  else if(s==='rules')app.innerHTML=rulesHTML();
+  if(UI.sheet)app.insertAdjacentHTML('beforeend',`<div class="sheetbg" data-act="sheetbg"><div class="sheet" data-act="sheet">${UI.sheet.html}</div></div>`);
+  if(UI.cutin)app.insertAdjacentHTML('beforeend',`<div class="cutin ${UI.cutin.cls}">${esc(UI.cutin.text)}</div>`);
+}
+function go(s){UI.screen=s;UI.sheet=null;render();window.scrollTo(0,0);}
+
+/* ---------- タイトル ---------- */
+function titleHTML(){
+  return `<div class="screen"><h1>竜機妖バトル</h1><div class="sub" style="text-align:center">（仮タイトル）</div>
+  <div class="factions"><span>🐉</span><span>🤖</span><span>👺</span></div>
+  <div class="menu">
+    <button class="pri" data-act="toSetup">CPUと対戦</button>
+    <button data-act="toDeck">デッキ編集</button>
+    <button data-act="toSim">自動対戦（バランス検証）</button>
+    <button data-act="toRules">ルール</button>
+    <button data-act="mute">${muted?'🔇 音オフ':'🔊 音オン'}</button>
+  </div></div>`;
+}
+function deckOptions(sel,onlyValid){
+  return allDecks().map((d,i)=>{const bad=deckProblems(d).length;return `<option value="${i}" ${i==sel?'selected':''} ${onlyValid&&bad?'disabled':''}>${esc(d.name)}${bad?'（未完成）':''}</option>`;}).join('');
+}
+function setupHTML(){
+  const st=UI.setup;
+  return `<div class="screen"><h2>CPUと対戦</h2>
+  <label class="fld">あなたのデッキ<select data-set="my">${deckOptions(st.my,true)}</select></label>
+  <label class="fld">CPUのデッキ<select data-set="cpu">${deckOptions(st.cpu,true)}</select></label>
+  <label class="fld">CPUの強さ<select data-set="level"><option value="easy" ${st.level==='easy'?'selected':''}>かんたん</option><option value="normal" ${st.level==='normal'?'selected':''}>ふつう</option></select></label>
+  <div class="menu"><button class="pri" data-act="start">対戦開始</button><button data-act="toTitle">もどる</button></div></div>`;
+}
+
+/* ---------- 対戦 ---------- */
+const humanAgent={choose(g,p,kind,d){
+  return new Promise(res=>{
+    UI.prompt={kind,d,res:v=>{UI.prompt=null;UI.sheet=null;res(v);render();}};
+    if(kind==='mulligan')openSheet(`<h3>最初の手札</h3><div class="picklist">${p.hand.map(id=>`<div class="card f-${CARDS[id].fac}"><div class="art">${artHTML(id)}</div><div class="cn">${esc(CARDS[id].name)}</div><div class="cost">${CARDS[id].cost}</div></div>`).join('')}</div><div class="btns"><button class="pri" data-act="ans" data-v="0">このまま</button><button data-act="ans" data-v="1">引き直す（1回だけ）</button></div>`,true);
+    else if(kind==='yesno')openSheet(`<h3>${esc(d.prompt)}</h3><div class="btns"><button class="pri" data-act="ans" data-v="1">はい</button><button data-act="ans" data-v="0">いいえ</button></div>`,true);
+    else if(kind==='pickCard')openSheet(`<h3>${esc(d.prompt)}</h3><div class="picklist">${d.ids.map((id,i)=>`<div class="card f-${CARDS[id].fac}" data-act="pickc" data-v="${i}"><div class="art">${artHTML(id)}</div><div class="cn">${esc(CARDS[id].name)}</div><div class="cost">${CARDS[id].cost}</div></div>`).join('')}</div><div class="sub" style="margin-top:8px">タップして選ぶ</div>${d.optional?'<div class="btns"><button data-act="ans" data-v="-1">選ばない</button></div>':''}`,true);
+    else if(kind==='reveal')openSheet(`<h3>相手の手札</h3><div class="picklist">${d.ids.length?d.ids.map(id=>`<div class="card f-${CARDS[id].fac}"><div class="art">${artHTML(id)}</div><div class="cn">${esc(CARDS[id].name)}</div></div>`).join(''):'<span class="sub">なし</span>'}</div><div class="btns"><button class="pri" data-act="ans" data-v="0">とじる</button></div>`,true);
+    else render();
+  });
+}};
+function openSheet(html,modal){UI.sheet={html,modal};render();}
+
+function startGame(){
+  const ds=allDecks(),st=UI.setup;
+  const g=new Game([deckList(ds[st.my]),deckList(ds[st.cpu])],[humanAgent,cpuAgent(st.level)],{
+    names:['あなた','CPU'],
+    onUpdate:()=>{if(UI.game===g&&UI.screen==='game')render();},
+    onFx:(t,x)=>fx(g,t,x)
+  });
+  UI.game=g;UI.prompt=null;UI.sheet=null;go('game');
+  g.run().then(w=>{if(UI.game!==g)return;sfx(w===0?'win':'damage');render();});
+}
+function fx(g,t,x){
+  if(UI.game!==g)return;
+  if(t==='summon'){const c=CARDS[x.id];if(c.cost>=6){sfx('big');cutin(c.name+'！',`f-${c.fac}`,1100);}else sfx('summon');}
+  else if(t==='spell'){sfx('spell');const c=CARDS[x.id];if(x.owner===1)cutin(c.name,`f-${c.fac}`,800);}
+  else if(t==='attack')sfx('attack');
+  else if(t==='destroy')sfx('destroy');
+  else if(t==='damage'){sfx('damage');cutin(x.i===0?'ダメージ！':'ヒット！','dmg',700);document.body.classList.remove('shake');void document.body.offsetWidth;document.body.classList.add('shake');}
+  else if(t==='turn')sfx('turn');
+}
+function cutin(text,cls,ms){UI.cutin={text,cls};render();clearTimeout(UI._ct);UI._ct=setTimeout(()=>{UI.cutin=null;render();},ms);}
+
+function pinfo(g,p,top){
+  const life=Array.from({length:5},(_,i)=>i<p.life?'❤':'<span class="lost">❤</span>').join('');
+  return `<div class="pinfo"><span class="nm">${esc(p.name)}</span><span class="life">${life}</span><span class="chip">◆${p.stock}</span><span class="chip" title="クールダウン">⏳${p.cool}</span>${top?`<span class="chip">手札${p.hand.length}</span>`:''}<span class="chip">山${p.deck.length}</span><span class="chip" data-act="grave" data-p="${p.i}">墓${p.grave.length}</span></div>`;
+}
+function gameHTML(){
+  const g=UI.game;if(!g)return '';
+  const me=g.P[0],op=g.P[1],pr=UI.prompt;
+  const hlU=new Set(),hlH=new Set();let msg='',btns='';
+  const atkU=g.atk?g.atk.attacker.uid:null;
+  if(pr){
+    const k=pr.kind,d=pr.d;
+    if(k==='main'){me.hand.forEach((id,i)=>{if(g.canPlay(me,i,null))hlH.add(i);});msg='メイン: カードをタップして使う／自分のカードでジェム移動';btns=`<button class="pri" data-act="endMain">${g.turn===1?'ターン終了':'アタックへ'}</button>`;}
+    else if(k==='attack'){d.options.forEach(u=>hlU.add(u.uid));msg='アタックするユニットをタップ';btns=`<button class="pri" data-act="noAttack">ターン終了</button>`;}
+    else if(k==='block'){d.options.forEach(u=>hlU.add(u.uid));msg=`${CARDS[d.attacker.id].name}（${g.power(d.attacker)}）のアタック！ブロックする？`;btns=`<button class="pri" data-act="noBlock">ブロックしない</button>`;}
+    else if(k==='target'){d.options.forEach(u=>hlU.add(u.uid));msg=d.prompt;}
+    else if(k==='instant'){d.options.forEach(i=>hlH.add(i));msg='即時魔法を使う？（光っている手札）';btns=`<button class="pri" data-act="noInstant">使わない</button>`;}
+    else msg='';
+  }else{
+    msg=g.over?'':g.active===1?'CPUが考え中…':'…';
+  }
+  const ph={start:'開始',main:'メイン',attack:'アタック',end:'終了'}[g.phase]||'';
+  const unitRow=(p)=>p.units.length?p.units.map(x=>fieldCard(g,x,(hlU.has(x.uid)?'hl':'')+(x.uid===atkU?' atk':''))).join(''):'<span class="empty">ユニットなし</span>';
+  const baseRow=(p)=>p.bases.length?p.bases.map(x=>fieldCard(g,x,hlU.has(x.uid)?'hl':'')).join(''):'<span class="empty">拠点なし</span>';
+  const log=g.log.slice(-2).map(esc).join('<br>');
+  let over='';
+  if(g.over)over=`<div class="over"><div class="big">${g.winner===0?'勝利！':g.winner===1?'敗北…':'引き分け'}</div><div class="sub">${g.turn}ターン</div><button class="pri" data-act="again">もう一度</button><button data-act="toTitle">タイトルへ</button></div>`;
+  return `<div class="game">
+    ${pinfo(g,op,true)}
+    <div class="zone bases">${baseRow(op)}</div>
+    <div class="zone">${unitRow(op)}</div>
+    <div class="mid"><div class="phase">${g.active===0?'あなた':'CPU'}の${ph}　<span class="sub">T${g.turn}</span></div><div class="log">${log}</div><button data-act="menu" style="padding:6px 10px">≡</button></div>
+    <div class="zone">${unitRow(me)}</div>
+    <div class="zone bases">${baseRow(me)}</div>
+    ${pinfo(g,me,false)}
+    <div class="hand">${me.hand.map((id,i)=>handCard(g,me,id,i,hlH.has(i)?'hl':(pr&&(pr.kind==='main'||pr.kind==='instant')?'dim':''))).join('')||'<span class="empty">手札なし</span>'}</div>
+    <div class="bar"><div class="msg">${esc(msg)}</div>${btns}</div>
+  </div>${over}`;
+}
+function findObj(g,uid){for(const p of g.P)for(const x of [...p.units,...p.bases])if(x.uid==uid)return x;return null;}
+
+function onFieldTap(uid){
+  const g=UI.game,x=findObj(g,uid);if(!x)return;
+  const pr=UI.prompt,me=g.P[0];
+  if(pr){
+    if((pr.kind==='target'||pr.kind==='block'||pr.kind==='attack')&&pr.d.options.includes(x)){
+      if(pr.kind==='target')return pr.res(x);
+      return openSheet(cardText(x.id)+`<div class="lvtable">今のパワー ${g.power(x)} ・ ジェム${x.gems}</div><div class="btns"><button class="pri" data-act="pickUnit" data-uid="${x.uid}">${pr.kind==='attack'?'アタック！':'ブロック！'}</button><button data-act="close">やめる</button></div>`);
+    }
+    if(pr.kind==='main'&&x.owner===0){
+      const L=CARDS[x.id].lv;
+      return openSheet(cardText(x.id)+`<div class="lvtable">今: Lv${lvl(x)} ・ ジェム${x.gems}${CARDS[x.id].kind==='unit'?` ・ パワー${g.power(x)}`:''}</div><div class="btns"><button class="pri" data-act="gemp" data-uid="${x.uid}" ${me.stock<1?'disabled':''}>ジェム+1（ストック${me.stock}）</button><button data-act="gemm" data-uid="${x.uid}" ${x.gems<1?'disabled':''}>ジェム-1（ストックへ戻す）${CARDS[x.id].kind==='unit'&&x.gems<=1?' ※0で破壊':''}</button><button data-act="close">とじる</button></div>`);
+    }
+  }
+  openSheet(cardText(x.id)+(CARDS[x.id].kind==='unit'?`<div class="lvtable">今のパワー ${g.power(x)} ・ ジェム${x.gems} ・ Lv${lvl(x)}</div>`:`<div class="lvtable">ジェム${x.gems} ・ Lv${lvl(x)}</div>`)+'<div class="btns"><button data-act="close">とじる</button></div>');
+}
+function onHandTap(i){
+  const g=UI.game,me=g.P[0],id=me.hand[i],c=CARDS[id],pr=UI.prompt;
+  let btns='';
+  if(pr&&pr.kind==='main'&&g.canPlay(me,i,null)){
+    const cost=g.cost(me,id),free=me.stock-cost;
+    if(c.kind==='unit'||c.kind==='base'){
+      const min=c.kind==='unit'?1:0;
+      for(let n=min;n<=Math.min(free,8);n++){
+        const l=(()=>{let r=0;c.lv.forEach((v,k)=>{if(n>=v[0])r=k+1;});return r;})();
+        btns+=`<button ${n===min?'class="pri"':''} data-act="play" data-i="${i}" data-g="${n}">${c.kind==='unit'?'召喚':'配置'}: ジェム${n}個乗せる（Lv${l}${c.kind==='unit'?` / ${c.lv[l-1][1]}`:''}）</button>`;
+      }
+    }else btns=`<button class="pri" data-act="play" data-i="${i}" data-g="0">使う</button>`;
+    btns=`<div class="sub" style="margin-top:8px">コスト${cost}を払う（ストック${me.stock}）</div>`+btns;
+  }else if(pr&&pr.kind==='instant'&&pr.d.options.includes(i)){
+    btns=`<button class="pri" data-act="useInstant" data-i="${i}">使う（コスト${g.cost(me,id)}）</button>`;
+  }
+  openSheet(cardText(id)+`<div class="btns">${btns}<button data-act="close">とじる</button></div>`);
+}
+
+/* ---------- デッキ編集 ---------- */
+function deckHTML(){
+  const ds=allDecks();if(UI.editing==null)UI.editing={idx:0,d:JSON.parse(JSON.stringify(ds[0]))};
+  const e=UI.editing,d=e.d,n=deckCount(d),pr=deckProblems(d);
+  const ids=ALL_IDS.filter(id=>UI.filter==='all'||UI.filter==='in'?true:id[0]===UI.filter).filter(id=>UI.filter!=='in'||d.cards[id]);
+  return `<div class="screen"><div class="stick">
+    <div class="row"><select data-act="deckSel" style="flex:1">${ds.map((x,i)=>`<option value="${i}" ${i===e.idx?'selected':''}>${esc(x.name)}</option>`).join('')}</select><button data-act="toTitle">もどる</button></div>
+    <div class="row" style="margin-top:8px"><input data-act="deckName" value="${esc(d.name)}" ${d.preset?'disabled':''} style="flex:1"><b class="${pr.length?'ng':'ok'}">${n}枚</b></div>
+    <div class="sub" style="margin-top:4px">${pr.length?esc(pr.join(' / ')):'このデッキで対戦できます'}${d.preset?' ・ 入門デッキは「コピー」してから編集':''}</div>
+    <div class="row" style="margin-top:8px"><button data-act="deckNew">新規</button><button data-act="deckCopy">コピー</button><button class="pri" data-act="deckSave" ${d.preset?'disabled':''}>保存</button><button class="dng" data-act="deckDel" ${d.preset?'disabled':''}>削除</button></div>
+    <div class="tabs">${[['all','全部'],['D','竜'],['M','機'],['Y','妖'],['in','デッキ']].map(([k,t])=>`<button class="${UI.filter===k?'on':''}" data-act="filter" data-v="${k}">${t}</button>`).join('')}</div>
+  </div>
+  <div class="clist">${ids.map(id=>{const c=CARDS[id],k=d.cards[id]||0,mx=maxCopies(id);return `<div class="crow"><div class="card f-${c.fac}" data-act="cinfo" data-id="${id}"><div class="art">${artHTML(id)}</div><div class="cn">${esc(c.name)}</div><div class="cost">${c.cost}</div></div><div class="info"><div class="t">${esc(c.name)}${c.star?' ★':''}</div><div class="s">${KIND[c.kind]} ・ コスト${c.cost}（${c.red}）${c.kind==='unit'?' ・ '+c.lv.map(l=>l[1]).join('/'):''}</div><div class="s">${esc(c.text)}</div>${mx<3?`<div class="s ng">${mx?'制限: 1枚まで':'禁止'}</div>`:''}</div><div class="cnt"><button data-act="dec" data-id="${id}" ${d.preset||!k?'disabled':''}>−</button><b>${k}</b><button data-act="inc" data-id="${id}" ${d.preset||k>=mx?'disabled':''}>＋</button></div></div>`;}).join('')||'<div class="sub">カードがありません</div>'}</div></div>`;
+}
+function saveDeck(){
+  const e=UI.editing;if(e.d.preset)return;
+  const mine=myDecks();const mi=e.idx-PRESETS.length;
+  if(mi>=0&&mi<mine.length)mine[mi]=e.d;else{mine.push(e.d);e.idx=PRESETS.length+mine.length-1;}
+  store.set('rk.decks',mine);
+}
+
+/* ---------- 自動対戦 ---------- */
+function simHTML(){
+  const s=UI.sim;
+  let res='';
+  if(s.res){
+    const r=s.res,ds=allDecks();
+    const rows=Object.entries(r.cards).filter(([,v])=>v.g>=3).map(([id,v])=>({id,g:v.g,w:v.w,rate:v.w/v.g})).sort((a,b)=>b.rate-a.rate);
+    res=`<h2>結果（${r.n}戦）</h2>
+    <div>${esc(ds[r.a]?.name||'A')}: <b>${r.wa}勝</b>（${Math.round(r.wa/r.n*100)}%） / ${esc(ds[r.b]?.name||'B')}: <b>${r.wb}勝</b>（${Math.round(r.wb/r.n*100)}%）${r.draw?` / 引き分け${r.draw}`:''}</div>
+    <div class="sub">平均 ${(r.turns/r.n).toFixed(1)} ターン ・ 先攻の勝率 ${Math.round(r.firstWin/Math.max(1,r.n-r.draw)*100)}%</div>
+    <h2>カードごとの勝率（使った試合）</h2><div class="sub">勝率が高く、使われた回数も多いカードが「壊れ」の候補です。⚠は勝率65%以上で10試合以上使われたもの。</div>
+    <table class="stats"><tr><th>カード</th><th class="n">使用</th><th class="n">勝率</th></tr>${rows.map(x=>`<tr><td>${x.rate>=.65&&x.g>=10?'⚠ ':''}${x.id} ${esc(CARDS[x.id].name)}</td><td class="n">${x.g}</td><td class="n">${Math.round(x.rate*100)}%</td></tr>`).join('')}</table>`;
+  }
+  return `<div class="screen"><div class="row"><h2 style="flex:1">自動対戦</h2><button data-act="toTitle" ${s.running?'disabled':''}>もどる</button></div>
+  <div class="sub">CPU（ふつう）同士を何度も戦わせて、デッキとカードの勝率を出します。</div>
+  <label class="fld">デッキA<select data-sim="a">${deckOptions(s.a,true)}</select></label>
+  <label class="fld">デッキB<select data-sim="b">${deckOptions(s.b,true)}</select></label>
+  <label class="fld">試合数<select data-sim="n">${[20,50,100,300].map(n=>`<option ${n==s.n?'selected':''}>${n}</option>`).join('')}</select></label>
+  <button class="pri" data-act="simRun" ${s.running?'disabled':''} style="width:100%">${s.running?'実行中…':'開始'}</button>
+  <div class="prog"><div style="width:${Math.round(s.prog*100)}%"></div></div>
+  ${res}</div>`;
+}
+async function runSim(a,b,n,onProg){
+  const ds=allDecks();const r={a,b,n,wa:0,wb:0,draw:0,turns:0,firstWin:0,cards:{}};
+  for(let k=0;k<n;k++){
+    const g=new Game([deckList(ds[a]),deckList(ds[b])],[cpuAgent('normal'),cpuAgent('normal')],{fast:true,names:['A','B']});
+    const w=await g.run();
+    r.turns+=g.turn;
+    if(w===0)r.wa++;else if(w===1)r.wb++;else r.draw++;
+    if(w!=null&&w===g.first)r.firstWin++;
+    for(const p of g.P)for(const id of p.played){const c=r.cards[id]||(r.cards[id]={g:0,w:0});c.g++;if(w===p.i)c.w++;}
+    if(onProg&&k%2===1){onProg((k+1)/n);await sleep(0);}
+  }
+  return r;
+}
+
+/* ---------- ルール ---------- */
+function rulesHTML(){
+  return `<div class="screen rules"><div class="row"><h2 style="flex:1">ルール</h2><button data-act="toTitle">もどる</button></div>
+  <p>相手のライフ（5）を0にすれば勝ち。相手がデッキから引けなくなっても勝ち。</p>
+  <h2>ターンの流れ</h2><ol>
+  <li>補充: ジェム+1</li><li>回復: クールダウンのジェムをストックへ戻し、伏せたカードを立てる</li><li>ドロー: 1枚（先攻の1ターン目はなし）</li>
+  <li>メイン: 召喚・拠点・魔法・ジェムの乗せ替え</li><li>アタック: 立っているユニットで1体ずつ（先攻の1ターン目はなし）</li><li>終了</li></ol>
+  <h2>コストとレベル</h2><ul>
+  <li>コスト分のジェムをストックからクールダウンへ払う</li><li>場の同じ勢力のカード1枚につきコスト-1（カードごとの上限まで）</li>
+  <li>ユニットはジェムを1個以上乗せて召喚。乗っている数でレベルとパワーが決まる。0個になると破壊</li>
+  <li>メイン中は自分のカードをタップしてジェムを乗せたり戻したりできる</li></ul>
+  <h2>アタックとブロック</h2><ul>
+  <li>アタックしたユニットは伏せる。相手は立っているユニット1体でブロックできる（ブロックしたユニットも伏せる）</li>
+  <li>パワーが低い方が破壊、同じなら両方破壊</li>
+  <li>ブロックされなければ相手のライフ-1。減ったライフのジェムは相手のストックへ（反撃の資金になる）</li>
+  <li>アタック中は、防御側→攻撃側の順で即時魔法を使える</li></ul>
+  <h2>デッキ</h2><ul><li>40枚以上、同じカードは3枚まで（制限カードは1枚）</li></ul></div>`;
+}
+
+/* ---------- 入力 ---------- */
+app.addEventListener('click',async ev=>{
+  const t=ev.target.closest('[data-act],[data-uid],[data-hand]');if(!t)return;
+  const act=t.dataset.act,g=UI.game,pr=UI.prompt;
+  if(!act&&t.dataset.uid!=null&&UI.screen==='game')return onFieldTap(t.dataset.uid);
+  if(!act&&t.dataset.hand!=null&&UI.screen==='game')return onHandTap(+t.dataset.hand);
+  switch(act){
+    case 'sheetbg':if(ev.target===t&&!(UI.sheet&&UI.sheet.modal)){UI.sheet=null;render();}break;
+    case 'sheet':break;
+    case 'close':UI.sheet=null;render();break;
+    case 'toTitle':if(UI.screen==='game'&&g&&!g.over){UI.game=null;}go('title');break;
+    case 'toSetup':go('setup');break;
+    case 'toDeck':UI.editing=null;go('deck');break;
+    case 'toSim':go('sim');break;
+    case 'toRules':go('rules');break;
+    case 'mute':muted=!muted;store.set('rk.mute',muted);render();break;
+    case 'start':case 'again':startGame();break;
+    case 'menu':openSheet(`<h3>メニュー</h3><div class="btns"><button data-act="close">対戦にもどる</button><button class="dng" data-act="toTitle">降参してタイトルへ</button></div>`);break;
+    case 'grave':{const p=g.P[+t.dataset.p];openSheet(`<h3>${esc(p.name)}の墓地</h3><div class="picklist">${p.grave.map(id=>`<div class="card f-${CARDS[id].fac}"><div class="art">${artHTML(id)}</div><div class="cn">${esc(CARDS[id].name)}</div></div>`).join('')||'<span class="sub">なし</span>'}</div><div class="btns"><button data-act="close">とじる</button></div>`);break;}
+    case 'ans':if(pr){const v=+t.dataset.v;pr.res(pr.kind==='pickCard'?(v<0?null:v):!!v);}break;
+    case 'pickc':if(pr&&pr.kind==='pickCard')pr.res(+t.dataset.v);break;
+    case 'endMain':if(pr&&pr.kind==='main')pr.res({type:'end'});break;
+    case 'noAttack':if(pr&&pr.kind==='attack')pr.res(null);break;
+    case 'noBlock':if(pr&&pr.kind==='block')pr.res(null);break;
+    case 'noInstant':if(pr&&pr.kind==='instant')pr.res(null);break;
+    case 'pickUnit':if(pr){const x=findObj(g,t.dataset.uid);if(x)pr.res(x);}break;
+    case 'play':if(pr&&pr.kind==='main')pr.res({type:'play',idx:+t.dataset.i,gems:+t.dataset.g});break;
+    case 'useInstant':if(pr&&pr.kind==='instant')pr.res(+t.dataset.i);break;
+    case 'gemp':case 'gemm':if(pr&&pr.kind==='main'){const x=findObj(g,t.dataset.uid);if(x)pr.res({type:act==='gemp'?'gem+':'gem-',x});}break;
+    // deck
+    case 'filter':UI.filter=t.dataset.v;render();break;
+    case 'cinfo':openSheet(cardText(t.dataset.id)+'<div class="btns"><button data-act="close">とじる</button></div>');break;
+    case 'inc':{const d=UI.editing.d,id=t.dataset.id;d.cards[id]=Math.min(maxCopies(id),(d.cards[id]||0)+1);render();break;}
+    case 'dec':{const d=UI.editing.d,id=t.dataset.id;d.cards[id]=(d.cards[id]||0)-1;if(d.cards[id]<=0)delete d.cards[id];render();break;}
+    case 'deckNew':{UI.editing={idx:-1,d:{name:`マイデッキ${myDecks().length+1}`,cards:{}}};render();break;}
+    case 'deckCopy':{const d=JSON.parse(JSON.stringify(UI.editing.d));delete d.preset;d.name=d.name.replace('（入門）','')+'のコピー';UI.editing={idx:-1,d};saveDeck();render();break;}
+    case 'deckSave':saveDeck();cutin('保存しました','f-M',700);break;
+    case 'deckDel':{const mi=UI.editing.idx-PRESETS.length;if(mi>=0&&confirm('このデッキを削除しますか？')){const m=myDecks();m.splice(mi,1);store.set('rk.decks',m);}UI.editing=null;render();break;}
+    // sim
+    case 'simRun':{const s=UI.sim;s.running=true;s.res=null;s.prog=0;render();
+      try{s.res=await runSim(+s.a,+s.b,+s.n,p=>{s.prog=p;const bar=app.querySelector('.prog div');if(bar)bar.style.width=Math.round(p*100)+'%';});}catch(e){alert('エラー: '+e.message);console.error(e);}
+      s.running=false;s.prog=1;if(UI.screen==='sim')render();break;}
+  }
+});
+app.addEventListener('change',ev=>{
+  const t=ev.target;
+  if(t.dataset.set){UI.setup[t.dataset.set]=t.dataset.set==='level'?t.value:+t.value;}
+  if(t.dataset.sim){UI.sim[t.dataset.sim]=+t.value;}
+  if(t.dataset.act==='deckSel'){const i=+t.value;UI.editing={idx:i,d:JSON.parse(JSON.stringify(allDecks()[i]))};render();}
+  if(t.dataset.act==='deckName'){UI.editing.d.name=t.value||'名無しデッキ';}
+});
+window.__game={Game,cpuAgent,runSim,allDecks,deckList,CARDS};
+render();
+</script>
+</body>
+</html>

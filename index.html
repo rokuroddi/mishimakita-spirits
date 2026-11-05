@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>竜機妖バトル（仮）</title>
+<title>三嶋スピリッツ</title>
 <style>
 :root{
   --bg:#12131a;--panel:#1c1e28;--panel2:#252836;--line:#343849;--text:#eef0f6;--sub:#9aa0b4;
@@ -122,7 +122,7 @@ table.stats td.n{text-align:right}
 <script>
 'use strict';
 /* =========================================================
-   竜機妖バトル（仮） — 1ファイル版
+   三嶋スピリッツ — 1ファイル版
    ========================================================= */
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
@@ -776,7 +776,7 @@ function go(s){UI.screen=s;UI.sheet=null;render();window.scrollTo(0,0);}
 
 /* ---------- タイトル ---------- */
 function titleHTML(){
-  return `<div class="screen"><h1>竜機妖バトル</h1><div class="sub" style="text-align:center">（仮タイトル）</div>
+  return `<div class="screen"><h1>三嶋スピリッツ</h1><div class="sub" style="text-align:center">竜・機・妖 3勢力カードバトル</div>
   <div class="factions"><span>🐉</span><span>🤖</span><span>👺</span></div>
   <div class="menu">
     <button class="pri" data-act="toSetup">CPUと対戦</button>

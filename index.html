@@ -63,7 +63,16 @@ label.fld{display:flex;flex-direction:column;gap:4px;margin:10px 0}
 .card .cost{position:absolute;top:2px;left:2px;background:#000a;border-radius:50%;width:20px;height:20px;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center}
 .card .gm{position:absolute;top:2px;right:2px;background:#000b;border-radius:8px;padding:0 5px;font-size:11px;font-weight:700;color:#7fe0ff}
 .card .kd{position:absolute;top:2px;right:2px;background:#000a;border-radius:6px;padding:0 4px;font-size:9px}
-.card.base{height:54px;width:76px}
+.card.base{height:54px;width:76px;border-color:#2a8f80}
+.card .kb{position:absolute;top:2px;left:2px;background:#1f6f63;color:#fff;border-radius:5px;padding:0 4px;font-size:9px;font-weight:800}
+.card .tp{position:absolute;left:0;right:0;bottom:0;height:16px;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:2px;letter-spacing:.02em}
+.k-unit .tp{background:#000b;color:var(--gold)}
+.k-base .tp{background:#1f6f63;color:#fff}
+.k-spell .tp{background:#7a2e6b;color:#fff}
+.k-instant .tp{background:#1d5f86;color:#fff}
+.zone.bases{background:rgba(42,143,128,.10);border-radius:8px}
+.zl{flex:0 0 auto;align-self:stretch;writing-mode:vertical-rl;font-size:10px;font-weight:700;letter-spacing:.15em;color:var(--sub);background:var(--panel);border-radius:6px;padding:4px 2px;display:flex;align-items:center;justify-content:center}
+.zone.bases .zl{color:#7fd6c8;background:rgba(42,143,128,.22);writing-mode:horizontal-tb;letter-spacing:0;padding:2px 5px}
 .card.base .art{height:30px}.card.base .emo{font-size:20px}
 .card.base .cn{height:13px;white-space:nowrap}
 .card.tapped{transform:rotate(14deg) scale(.9);opacity:.55}
@@ -754,11 +763,12 @@ function cardText(id){
 function fieldCard(g,x,cls=''){
   const c=CARDS[x.id],base=c.kind==='base';
   const isNew=Date.now()-x.born<600?' new':'';
-  return `<div class="card f-${c.fac}${base?' base':''}${x.tapped?' tapped':''}${isNew} ${cls}" data-uid="${x.uid}"><div class="art">${artHTML(x.id)}</div><div class="cn">${esc(c.name)}</div>${base?'':`<div class="pw">${g.power(x)}</div>`}<div class="lv">Lv${lvl(x)}</div><div class="gm">◆${x.gems}</div></div>`;
+  return `<div class="card f-${c.fac}${base?' base':''}${x.tapped?' tapped':''}${isNew} ${cls}" data-uid="${x.uid}"><div class="art">${artHTML(x.id)}</div>${base?'<div class="kb">拠点</div>':''}<div class="cn">${esc(c.name)}</div>${base?'':`<div class="pw">${g.power(x)}</div>`}<div class="lv">Lv${lvl(x)}</div><div class="gm">◆${x.gems}</div></div>`;
 }
+function tpHTML(id){const c=CARDS[id];return `<div class="tp">${c.kind==='unit'?'⚔ '+c.lv[0][1]:{base:'🏯 拠点',spell:'✦ 魔法',instant:'⚡ 即時'}[c.kind]}</div>`;}
 function handCard(g,p,id,i,cls=''){
   const c=CARDS[id];
-  return `<div class="card f-${c.fac} ${cls}" data-hand="${i}"><div class="art">${artHTML(id)}</div><div class="cn">${esc(c.name)}</div><div class="cost">${g.cost(p,id)}</div><div class="kd">${{unit:'U',base:'拠',spell:'魔',instant:'即'}[c.kind]}</div>${c.kind==='unit'?`<div class="pw">${c.lv[0][1]}</div>`:''}</div>`;
+  return `<div class="card f-${c.fac} k-${c.kind} ${cls}" data-hand="${i}"><div class="art">${artHTML(id)}</div><div class="cn">${esc(c.name)}</div><div class="cost">${g.cost(p,id)}</div>${tpHTML(id)}</div>`;
 }
 
 function render(){
@@ -802,10 +812,10 @@ function setupHTML(){
 const humanAgent={choose(g,p,kind,d){
   return new Promise(res=>{
     UI.prompt={kind,d,res:v=>{UI.prompt=null;UI.sheet=null;res(v);render();}};
-    if(kind==='mulligan')openSheet(`<h3>最初の手札</h3><div class="picklist">${p.hand.map(id=>`<div class="card f-${CARDS[id].fac}"><div class="art">${artHTML(id)}</div><div class="cn">${esc(CARDS[id].name)}</div><div class="cost">${CARDS[id].cost}</div></div>`).join('')}</div><div class="btns"><button class="pri" data-act="ans" data-v="0">このまま</button><button data-act="ans" data-v="1">引き直す（1回だけ）</button></div>`,true);
+    if(kind==='mulligan')openSheet(`<h3>最初の手札</h3><div class="picklist">${p.hand.map(id=>`<div class="card f-${CARDS[id].fac} k-${CARDS[id].kind}"><div class="art">${artHTML(id)}</div><div class="cn">${esc(CARDS[id].name)}</div><div class="cost">${CARDS[id].cost}</div>${tpHTML(id)}</div>`).join('')}</div><div class="btns"><button class="pri" data-act="ans" data-v="0">このまま</button><button data-act="ans" data-v="1">引き直す（1回だけ）</button></div>`,true);
     else if(kind==='yesno')openSheet(`<h3>${esc(d.prompt)}</h3><div class="btns"><button class="pri" data-act="ans" data-v="1">はい</button><button data-act="ans" data-v="0">いいえ</button></div>`,true);
-    else if(kind==='pickCard')openSheet(`<h3>${esc(d.prompt)}</h3><div class="picklist">${d.ids.map((id,i)=>`<div class="card f-${CARDS[id].fac}" data-act="pickc" data-v="${i}"><div class="art">${artHTML(id)}</div><div class="cn">${esc(CARDS[id].name)}</div><div class="cost">${CARDS[id].cost}</div></div>`).join('')}</div><div class="sub" style="margin-top:8px">タップして選ぶ</div>${d.optional?'<div class="btns"><button data-act="ans" data-v="-1">選ばない</button></div>':''}`,true);
-    else if(kind==='reveal')openSheet(`<h3>相手の手札</h3><div class="picklist">${d.ids.length?d.ids.map(id=>`<div class="card f-${CARDS[id].fac}"><div class="art">${artHTML(id)}</div><div class="cn">${esc(CARDS[id].name)}</div></div>`).join(''):'<span class="sub">なし</span>'}</div><div class="btns"><button class="pri" data-act="ans" data-v="0">とじる</button></div>`,true);
+    else if(kind==='pickCard')openSheet(`<h3>${esc(d.prompt)}</h3><div class="picklist">${d.ids.map((id,i)=>`<div class="card f-${CARDS[id].fac} k-${CARDS[id].kind}" data-act="pickc" data-v="${i}"><div class="art">${artHTML(id)}</div><div class="cn">${esc(CARDS[id].name)}</div><div class="cost">${CARDS[id].cost}</div>${tpHTML(id)}</div>`).join('')}</div><div class="sub" style="margin-top:8px">タップして選ぶ</div>${d.optional?'<div class="btns"><button data-act="ans" data-v="-1">選ばない</button></div>':''}`,true);
+    else if(kind==='reveal')openSheet(`<h3>相手の手札</h3><div class="picklist">${d.ids.length?d.ids.map(id=>`<div class="card f-${CARDS[id].fac} k-${CARDS[id].kind}"><div class="art">${artHTML(id)}</div><div class="cn">${esc(CARDS[id].name)}</div>${tpHTML(id)}</div>`).join(''):'<span class="sub">なし</span>'}</div><div class="btns"><button class="pri" data-act="ans" data-v="0">とじる</button></div>`,true);
     else render();
   });
 }};
@@ -853,8 +863,8 @@ function gameHTML(){
     msg=g.over?'':g.active===1?'CPUが考え中…':'…';
   }
   const ph={start:'開始',main:'メイン',attack:'アタック',end:'終了'}[g.phase]||'';
-  const unitRow=(p)=>p.units.length?p.units.map(x=>fieldCard(g,x,(hlU.has(x.uid)?'hl':'')+(x.uid===atkU?' atk':''))).join(''):'<span class="empty">ユニットなし</span>';
-  const baseRow=(p)=>p.bases.length?p.bases.map(x=>fieldCard(g,x,hlU.has(x.uid)?'hl':'')).join(''):'<span class="empty">拠点なし</span>';
+  const unitRow=(p)=>'<span class="zl">ユニット</span>'+(p.units.length?p.units.map(x=>fieldCard(g,x,(hlU.has(x.uid)?'hl':'')+(x.uid===atkU?' atk':''))).join(''):'<span class="empty">なし</span>');
+  const baseRow=(p)=>'<span class="zl">拠点</span>'+(p.bases.length?p.bases.map(x=>fieldCard(g,x,hlU.has(x.uid)?'hl':'')).join(''):'<span class="empty">なし</span>');
   const log=g.log.slice(-2).map(esc).join('<br>');
   let over='';
   if(g.over)over=`<div class="over"><div class="big">${g.winner===0?'勝利！':g.winner===1?'敗北…':'引き分け'}</div><div class="sub">${g.turn}ターン</div><button class="pri" data-act="again">もう一度</button><button data-act="toTitle">タイトルへ</button></div>`;
@@ -918,7 +928,7 @@ function deckHTML(){
     <div class="row" style="margin-top:8px"><button data-act="deckNew">新規</button><button data-act="deckCopy">コピー</button><button class="pri" data-act="deckSave" ${d.preset?'disabled':''}>保存</button><button class="dng" data-act="deckDel" ${d.preset?'disabled':''}>削除</button></div>
     <div class="tabs">${[['all','全部'],['D','竜'],['M','機'],['Y','妖'],['in','デッキ']].map(([k,t])=>`<button class="${UI.filter===k?'on':''}" data-act="filter" data-v="${k}">${t}</button>`).join('')}</div>
   </div>
-  <div class="clist">${ids.map(id=>{const c=CARDS[id],k=d.cards[id]||0,mx=maxCopies(id);return `<div class="crow"><div class="card f-${c.fac}" data-act="cinfo" data-id="${id}"><div class="art">${artHTML(id)}</div><div class="cn">${esc(c.name)}</div><div class="cost">${c.cost}</div></div><div class="info"><div class="t">${esc(c.name)}${c.star?' ★':''}</div><div class="s">${KIND[c.kind]} ・ コスト${c.cost}（${c.red}）${c.kind==='unit'?' ・ '+c.lv.map(l=>l[1]).join('/'):''}</div><div class="s">${esc(c.text)}</div>${mx<3?`<div class="s ng">${mx?'制限: 1枚まで':'禁止'}</div>`:''}</div><div class="cnt"><button data-act="dec" data-id="${id}" ${d.preset||!k?'disabled':''}>−</button><b>${k}</b><button data-act="inc" data-id="${id}" ${d.preset||k>=mx?'disabled':''}>＋</button></div></div>`;}).join('')||'<div class="sub">カードがありません</div>'}</div></div>`;
+  <div class="clist">${ids.map(id=>{const c=CARDS[id],k=d.cards[id]||0,mx=maxCopies(id);return `<div class="crow"><div class="card f-${c.fac} k-${c.kind}" data-act="cinfo" data-id="${id}"><div class="art">${artHTML(id)}</div><div class="cn">${esc(c.name)}</div><div class="cost">${c.cost}</div>${tpHTML(id)}</div><div class="info"><div class="t">${esc(c.name)}${c.star?' ★':''}</div><div class="s">${KIND[c.kind]} ・ コスト${c.cost}（${c.red}）${c.kind==='unit'?' ・ '+c.lv.map(l=>l[1]).join('/'):''}</div><div class="s">${esc(c.text)}</div>${mx<3?`<div class="s ng">${mx?'制限: 1枚まで':'禁止'}</div>`:''}</div><div class="cnt"><button data-act="dec" data-id="${id}" ${d.preset||!k?'disabled':''}>−</button><b>${k}</b><button data-act="inc" data-id="${id}" ${d.preset||k>=mx?'disabled':''}>＋</button></div></div>`;}).join('')||'<div class="sub">カードがありません</div>'}</div></div>`;
 }
 function saveDeck(){
   const e=UI.editing;if(e.d.preset)return;
@@ -1000,7 +1010,7 @@ app.addEventListener('click',async ev=>{
     case 'mute':muted=!muted;store.set('rk.mute',muted);render();break;
     case 'start':case 'again':startGame();break;
     case 'menu':openSheet(`<h3>メニュー</h3><div class="btns"><button data-act="close">対戦にもどる</button><button class="dng" data-act="toTitle">降参してタイトルへ</button></div>`);break;
-    case 'grave':{const p=g.P[+t.dataset.p];openSheet(`<h3>${esc(p.name)}の墓地</h3><div class="picklist">${p.grave.map(id=>`<div class="card f-${CARDS[id].fac}"><div class="art">${artHTML(id)}</div><div class="cn">${esc(CARDS[id].name)}</div></div>`).join('')||'<span class="sub">なし</span>'}</div><div class="btns"><button data-act="close">とじる</button></div>`);break;}
+    case 'grave':{const p=g.P[+t.dataset.p];openSheet(`<h3>${esc(p.name)}の墓地</h3><div class="picklist">${p.grave.map(id=>`<div class="card f-${CARDS[id].fac} k-${CARDS[id].kind}"><div class="art">${artHTML(id)}</div><div class="cn">${esc(CARDS[id].name)}</div>${tpHTML(id)}</div>`).join('')||'<span class="sub">なし</span>'}</div><div class="btns"><button data-act="close">とじる</button></div>`);break;}
     case 'ans':if(pr){const v=+t.dataset.v;pr.res(pr.kind==='pickCard'?(v<0?null:v):!!v);}break;
     case 'pickc':if(pr&&pr.kind==='pickCard')pr.res(+t.dataset.v);break;
     case 'endMain':if(pr&&pr.kind==='main')pr.res({type:'end'});break;

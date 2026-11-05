@@ -91,6 +91,13 @@ label.fld{display:flex;flex-direction:column;gap:4px;margin:10px 0}
 @keyframes pop{0%{transform:scale(.3);opacity:0}70%{transform:scale(1.12)}100%{transform:scale(1)}}
 
 .sheetbg{position:fixed;inset:0;background:#000a;display:flex;align-items:flex-end;justify-content:center;z-index:20}
+.gsl{margin:12px 0 4px;padding:12px;background:var(--panel2);border-radius:12px}
+.gsl-lbl{text-align:center;font-size:16px;margin-bottom:10px}.gsl-lbl b{color:#7fe0ff}
+.gsl input[type=range]{--p:0%;-webkit-appearance:none;appearance:none;width:100%;height:14px;border-radius:7px;background:linear-gradient(90deg,var(--gold) var(--p),#3a3d4a var(--p));outline:none;margin:6px 0}
+.gsl input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:34px;height:34px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff6c8,var(--gold) 55%,#a87a12);border:2px solid #fff3;box-shadow:0 0 10px var(--gold)}
+.gsl input[type=range]::-moz-range-thumb{width:34px;height:34px;border-radius:50%;background:var(--gold);border:0}
+.gsl-ends{display:flex;justify-content:space-between;color:var(--sub);font-size:12px;margin-bottom:10px}
+.gsl #slGo{width:100%;padding:14px;font-size:16px}
 .sheet{background:var(--panel);width:100%;max-width:520px;border-radius:16px 16px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));max-height:85vh;overflow:auto}
 .sheet .btns{display:flex;flex-direction:column;gap:8px;margin-top:12px}
 .detail{display:flex;gap:12px}
@@ -520,6 +527,7 @@ class Game{
       if(a.type==='play'){if(this.canPlay(p,a.idx,null))await this.play(p,a.idx,a.gems,null);}
       else if(a.type==='gem+'){if(p.stock>0&&!a.x.dead){a.x.gems++;p.stock--;}}
       else if(a.type==='gem-'){if(a.x.gems>0&&!a.x.dead){a.x.gems--;p.stock++;await this.cleanup();}}
+      else if(a.type==='gemset'){const x=a.x;if(!x.dead){const t=Math.max(0,Math.min(a.n,x.gems+p.stock));p.stock-=t-x.gems;x.gems=t;if(t===0)await this.cleanup();}}
       this.onUpdate();
     }
   }
@@ -899,10 +907,30 @@ function onFieldTap(uid){
     }
     if(pr.kind==='main'&&x.owner===0){
       const L=CARDS[x.id].lv;
-      return openSheet(cardText(x.id)+`<div class="lvtable">今: Lv${lvl(x)} ・ ジェム${x.gems}${CARDS[x.id].kind==='unit'?` ・ パワー${g.power(x)}`:''}</div><div class="btns"><button class="pri" data-act="gemp" data-uid="${x.uid}" ${me.stock<1?'disabled':''}>ジェム+1（ストック${me.stock}）</button><button data-act="gemm" data-uid="${x.uid}" ${x.gems<1?'disabled':''}>ジェム-1（ストックへ戻す）${CARDS[x.id].kind==='unit'&&x.gems<=1?' ※0で破壊':''}</button><button data-act="close">とじる</button></div>`);
+      return openSheet(cardText(x.id)+`<div class="lvtable">今: Lv${lvl(x)} ・ ジェム${x.gems}${CARDS[x.id].kind==='unit'?` ・ パワー${g.power(x)}`:''}</div>${(x.gems+me.stock>0)?sliderHTML(x.id,0,x.gems+me.stock,x.gems,'gemset',`data-uid="${x.uid}"`,CARDS[x.id].kind==='unit'?g.power(x)-L[lvl(x)-1][1]:0):''}<div class="btns"><button data-act="gemp" data-uid="${x.uid}" ${me.stock<1?'disabled':''}>ジェム+1（ストック${me.stock}）</button><button data-act="gemm" data-uid="${x.uid}" ${x.gems<1?'disabled':''}>ジェム-1（ストックへ戻す）${CARDS[x.id].kind==='unit'&&x.gems<=1?' ※0で破壊':''}</button><button data-act="close">とじる</button></div>`);
     }
   }
   openSheet(cardText(x.id)+(CARDS[x.id].kind==='unit'?`<div class="lvtable">今のパワー ${g.power(x)} ・ ジェム${x.gems} ・ Lv${lvl(x)}</div>`:`<div class="lvtable">ジェム${x.gems} ・ Lv${lvl(x)}</div>`)+'<div class="btns"><button data-act="close">とじる</button></div>');
+}
+function lvAt(c,n){let r=0;c.lv.forEach((v,k)=>{if(n>=v[0])r=k+1;});return r;}
+function slLabel(c,n,bonus){
+  const l=lvAt(c,n);
+  if(c.kind==='unit'&&l===0)return `<b>ジェム${n}個</b> → <span style="color:var(--D)">破壊される</span>`;
+  return `<b>ジェム${n}個</b> → Lv${l}${c.kind==='unit'?` ・ パワー${c.lv[l-1][1]+(bonus||0)}`:''}`;
+}
+function sliderHTML(id,min,max,val,act,attrs,bonus){
+  const c=CARDS[id];
+  return `<div class="gsl"><div class="gsl-lbl" id="slLbl">${slLabel(c,val,bonus)}</div>
+  <input type="range" min="${min}" max="${max}" value="${val}" step="1" data-id="${id}" data-bonus="${bonus||0}" oninput="gemSl(this)" style="--p:${(val-min)/Math.max(1,max-min)*100}%" ${max<=min?'disabled':''}>
+  <div class="gsl-ends"><span>${min}</span><span>${max}</span></div>
+  <button class="pri" id="slGo" data-act="${act}" ${attrs} data-g="${val}">${act==='play'?(c.kind==='unit'?'召喚':'配置')+`（ジェム${val}個）`:`ジェムを${val}個にする`}</button></div>`;
+}
+function gemSl(el){
+  const c=CARDS[el.dataset.id],n=+el.value,go=document.getElementById('slGo');
+  document.getElementById('slLbl').innerHTML=slLabel(c,n,+el.dataset.bonus);
+  go.dataset.g=n;go.textContent=go.dataset.act==='play'?(c.kind==='unit'?'召喚':'配置')+`（ジェム${n}個）`:`ジェムを${n}個にする`;
+  el.style.setProperty('--p',((n-el.min)/Math.max(1,el.max-el.min)*100)+'%');
+  if(navigator.vibrate)try{navigator.vibrate(5)}catch(e){}
 }
 function onHandTap(i){
   const g=UI.game,me=g.P[0],id=me.hand[i],c=CARDS[id],pr=UI.prompt;
@@ -911,6 +939,7 @@ function onHandTap(i){
     const cost=g.cost(me,id),free=me.stock-cost;
     if(c.kind==='unit'||c.kind==='base'){
       const min=c.kind==='unit'?1:0;
+      if(free>min)btns+=sliderHTML(id,min,free,min,'play',`data-i="${i}"`);
       for(let n=min;n<=Math.min(free,8);n++){
         const l=(()=>{let r=0;c.lv.forEach((v,k)=>{if(n>=v[0])r=k+1;});return r;})();
         btns+=`<button ${n===min?'class="pri"':''} data-act="play" data-i="${i}" data-g="${n}">${c.kind==='unit'?'召喚':'配置'}: ジェム${n}個乗せる（Lv${l}${c.kind==='unit'?` / ${c.lv[l-1][1]}`:''}）</button>`;
@@ -1027,6 +1056,7 @@ app.addEventListener('click',async ev=>{
     case 'pickUnit':if(pr){const x=findObj(g,t.dataset.uid);if(x)pr.res(x);}break;
     case 'play':if(pr&&pr.kind==='main')pr.res({type:'play',idx:+t.dataset.i,gems:+t.dataset.g});break;
     case 'useInstant':if(pr&&pr.kind==='instant')pr.res(+t.dataset.i);break;
+    case 'gemset':if(pr&&pr.kind==='main'){const x=findObj(g,t.dataset.uid);if(x&&+t.dataset.g!==x.gems)pr.res({type:'gemset',x,n:+t.dataset.g});else{UI.sheet=null;render();}}break;
     case 'gemp':case 'gemm':if(pr&&pr.kind==='main'){const x=findObj(g,t.dataset.uid);if(x)pr.res({type:act==='gemp'?'gem+':'gem-',x});}break;
     // deck
     case 'filter':UI.filter=t.dataset.v;render();break;
